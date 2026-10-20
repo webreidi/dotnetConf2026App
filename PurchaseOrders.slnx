@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PurchaseOrders.Api/PurchaseOrders.Api.csproj" />
+    <Project Path="src/PurchaseOrders.AppHost/PurchaseOrders.AppHost.csproj" />
+    <Project Path="src/PurchaseOrders.Client/PurchaseOrders.Client.csproj" />
+    <Project Path="src/PurchaseOrders.Contracts/PurchaseOrders.Contracts.csproj" />
+    <Project Path="src/PurchaseOrders.ServiceDefaults/PurchaseOrders.ServiceDefaults.csproj" />
+    <Project Path="src/PurchaseOrders.WinForms/PurchaseOrders.WinForms.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PurchaseOrders.IntegrationTests/PurchaseOrders.IntegrationTests.csproj" />
+    <Project Path="tests/PurchaseOrders.UnitTests/PurchaseOrders.UnitTests.csproj" />
+  </Folder>
+</Solution>
