@@ -9,7 +9,7 @@ builder.AddServiceDefaults();
 builder.AddNpgsqlDbContext<PurchasingDbContext>("purchasingdb");
 
 builder.Services.AddProblemDetails();
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<SupplierSimulationOptions>(builder.Configuration.GetSection(SupplierSimulationOptions.SectionName));
 builder.Services.AddSingleton<ISupplierOrderSimulator, SupplierOrderSimulator>();
@@ -21,7 +21,7 @@ app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapGet("/openapi.json", () => Results.Ok(new { message = "OpenAPI disabled in this sample." }));
 }
 
 await using (var scope = app.Services.CreateAsyncScope())
@@ -34,3 +34,5 @@ app.MapPurchaseOrderEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();
+
+

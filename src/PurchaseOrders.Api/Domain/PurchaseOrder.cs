@@ -50,7 +50,7 @@ public sealed class PurchaseOrder
 
         var order = new PurchaseOrder
         {
-            Id = Guid.CreateVersion7(createdAt),
+            Id = Guid.NewGuid(),
             OrderNumber = orderNumber,
             SupplierCode = supplier.Code,
             Supplier = supplier,
@@ -106,3 +106,4 @@ public sealed class PurchaseOrderLine
 }
 
 public sealed record NewPurchaseOrderLine(string Sku, string Description, int Quantity, decimal UnitPrice);
+
