@@ -1,6 +1,6 @@
 # Purchase Orders (Aspire sample)
 
-A small .NET 10 / Aspire app for entering **draft** purchase orders. Nothing is sent anywhere: there are no supplier calls, payments, or emails. Supplier latency is simulated in-process.
+A small .NET 11 / Aspire 13.6.2 app for entering **draft** purchase orders. Nothing is sent anywhere: there are no supplier calls, payments, or emails. Supplier latency is simulated in-process.
 
 ## Projects
 
@@ -17,7 +17,7 @@ A small .NET 10 / Aspire app for entering **draft** purchase orders. Nothing is 
 
 ## Prerequisites
 
-- .NET 10 SDK
+- .NET 11 SDK
 - Aspire CLI (`dotnet tool install -g Aspire.Cli`)
 - Docker Desktop (or Podman) running, for PostgreSQL
 - Windows, for the WinForms client
