@@ -43,7 +43,7 @@ public sealed class PurchaseOrderForm : Form
 
         _createButton.Click += async (_, _) => await CreateDraftAsync();
         _clearButton.Click += (_, _) => ResetForm();
-        _refreshButton.Click += async (_, _) => await LoadRecentOrdersAsync();
+        _refreshButton.Click += async (_, _) => await RefreshAsync();
         Load += async (_, _) => await InitializeAsync();
     }
 
@@ -104,7 +104,13 @@ public sealed class PurchaseOrderForm : Form
             DefaultCellStyle = { Format = "N2", BackColor = SystemColors.Control },
         });
 
-        _linesGrid.CellValueChanged += (_, _) => RecalculateTotals();
+        _linesGrid.CellValueChanged += (_, e) =>
+        {
+            if (e.ColumnIndex != _linesGrid.Columns["LineTotal"]!.Index)
+            {
+                RecalculateTotals();
+            }
+        };
         _linesGrid.RowsRemoved += (_, _) => RecalculateTotals();
         _linesGrid.DataError += (_, e) =>
         {
@@ -117,6 +123,22 @@ public sealed class PurchaseOrderForm : Form
     private async Task InitializeAsync()
     {
         _recentGrid.DataSource = new BindingList<PurchaseOrderSummaryDto>();
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        // Suppliers may have failed to load at startup; retry so users can recover without restarting.
+        if (_supplierCombo.DataSource is null)
+        {
+            await LoadSuppliersAsync();
+        }
+
+        await LoadRecentOrdersAsync();
+    }
+
+    private async Task LoadSuppliersAsync()
+    {
         await RunBusyAsync("Loading suppliers...", async () =>
         {
             var suppliers = await _client.GetSuppliersAsync();
@@ -125,7 +147,6 @@ public sealed class PurchaseOrderForm : Form
             _supplierCombo.DataSource = suppliers.ToList();
             SetStatus($"Connected. {suppliers.Count} active suppliers.");
         });
-        await LoadRecentOrdersAsync();
     }
 
     private async Task LoadRecentOrdersAsync()
@@ -217,6 +238,7 @@ public sealed class PurchaseOrderForm : Form
     private void RecalculateTotals()
     {
         decimal total = 0;
+        var overflowed = false;
         foreach (DataGridViewRow row in _linesGrid.Rows)
         {
             if (row.IsNewRow)
@@ -226,12 +248,37 @@ public sealed class PurchaseOrderForm : Form
 
             var quantity = row.Cells["Quantity"].Value as int? ?? 0;
             var unitPrice = row.Cells["UnitPrice"].Value as decimal? ?? 0m;
-            var lineTotal = decimal.Round(quantity * unitPrice, 2, MidpointRounding.AwayFromZero);
+            decimal lineTotal;
+            try
+            {
+                lineTotal = decimal.Round(quantity * unitPrice, 2, MidpointRounding.AwayFromZero);
+            }
+            catch (OverflowException)
+            {
+                row.Cells["LineTotal"].Value = null;
+                overflowed = true;
+                continue;
+            }
+
             row.Cells["LineTotal"].Value = lineTotal;
-            total += lineTotal;
+            if (overflowed)
+            {
+                continue;
+            }
+
+            try
+            {
+                total = checked(total + lineTotal);
+            }
+            catch (OverflowException)
+            {
+                overflowed = true;
+            }
         }
 
-        _totalLabel.Text = string.Create(CultureInfo.CurrentCulture, $"Total: {total:N2}");
+        _totalLabel.Text = overflowed
+            ? "Total: invalid (amount too large)"
+            : string.Create(CultureInfo.CurrentCulture, $"Total: {total:N2}");
     }
 
     private void ResetForm(bool keepStatus = false)
@@ -248,7 +295,7 @@ public sealed class PurchaseOrderForm : Form
     private async Task RunBusyAsync(string message, Func<Task> action)
     {
         UseWaitCursor = true;
-        _createButton.Enabled = _refreshButton.Enabled = false;
+        SetInputsEnabled(false);
         SetStatus(message);
         try
         {
@@ -260,8 +307,23 @@ public sealed class PurchaseOrderForm : Form
         }
         finally
         {
-            _createButton.Enabled = _refreshButton.Enabled = true;
+            SetInputsEnabled(true);
             UseWaitCursor = false;
+        }
+    }
+
+    // Lock the draft while a request is in flight so edits aren't silently lost when ResetForm runs.
+    private void SetInputsEnabled(bool enabled)
+    {
+        _createButton.Enabled = _refreshButton.Enabled = _clearButton.Enabled = enabled;
+        _supplierCombo.Enabled = enabled;
+        _notesBox.ReadOnly = !enabled;
+        _linesGrid.ReadOnly = !enabled;
+        _linesGrid.AllowUserToAddRows = enabled;
+        _linesGrid.AllowUserToDeleteRows = enabled;
+        if (enabled)
+        {
+            _linesGrid.Columns["LineTotal"]!.ReadOnly = true;
         }
     }
 

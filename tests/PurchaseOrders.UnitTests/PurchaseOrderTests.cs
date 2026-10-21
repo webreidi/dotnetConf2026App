@@ -68,7 +68,8 @@ public class PurchaseOrderTests
         var first = OrderNumberGenerator.Create(Now);
         var second = OrderNumberGenerator.Create(Now);
 
-        Assert.Matches(new Regex("^PO-20261110-[0-9A-F]{6}$"), first);
+        Assert.Matches(new Regex("^PO-20261110-[0-9A-F]{16}$"), first);
+        Assert.True(first.Length <= 32);
         Assert.NotEqual(first, second);
     }
 }
