@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PurchaseOrders.Contracts\PurchaseOrders.Contracts.csproj" />
+    <PackageReference Include="Markout" Version="0.40.1" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -11,6 +11,8 @@ public sealed class PurchaseOrdersAppFixture : IAsyncLifetime
 
     public HttpClient Api { get; private set; } = null!;
 
+    public HttpClient CreateApiClient() => _app!.CreateHttpClient("api", "https");
+
     public async Task InitializeAsync()
     {
         using var cts = new CancellationTokenSource(StartupTimeout);
@@ -33,7 +35,7 @@ public sealed class PurchaseOrdersAppFixture : IAsyncLifetime
         await _app.StartAsync(cts.Token);
         await _app.ResourceNotifications.WaitForResourceHealthyAsync("api", cts.Token);
 
-        Api = _app.CreateHttpClient("api", "https");
+        Api = CreateApiClient();
     }
 
     public async Task DisposeAsync()
@@ -51,4 +53,3 @@ public sealed class PurchaseOrdersAppCollection : ICollectionFixture<PurchaseOrd
 {
     public const string Name = "PurchaseOrdersApp";
 }
-
