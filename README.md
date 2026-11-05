@@ -30,6 +30,10 @@ aspire start --apphost src/PurchaseOrders.AppHost/PurchaseOrders.AppHost.csproj
 
 The dashboard shows `postgres`, `purchasingdb`, `api`, and `purchase-order-desk` (the WinForms window).
 
+## Observability
+
+The API exports ASP.NET Core, HTTP client, and .NET runtime telemetry through Aspire's OpenTelemetry defaults. Its domain telemetry adds the `purchase_orders.draft_creation_attempts` counter (tagged by outcome) and `purchase_orders.supplier_preparation.duration` histogram (tagged by outcome and whether the simulated preparation was slow), with spans for draft creation and supplier preparation. View these signals in the Aspire dashboard while the AppHost is running. Health and liveness endpoints are available in Development at `/health` and `/alive`.
+
 ## API
 
 | Method | Route | Description |

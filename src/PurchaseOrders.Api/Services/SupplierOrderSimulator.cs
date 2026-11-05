@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using PurchaseOrders.Api.Domain;
+using PurchaseOrders.Api.Observability;
 
 namespace PurchaseOrders.Api.Services;
 
@@ -35,13 +37,39 @@ public sealed class SupplierOrderSimulator(
         var slow = settings.SlowRequestRate > 0 && Random.Shared.NextDouble() < settings.SlowRequestRate;
         var delay = TimeSpan.FromMilliseconds(slow ? settings.SlowLatencyMs : settings.BaseLatencyMs);
 
+        using var activity = PurchaseOrderTelemetry.ActivitySource.StartActivity("supplier_order.prepare");
+        activity?.SetTag("supplier.simulation.slow", slow);
+        var startedAt = Stopwatch.GetTimestamp();
+
         logger.LogInformation(
-            "Preparing simulated supplier submission for {OrderNumber} ({Supplier}); simulated latency {DelayMs} ms",
+            "Preparing simulated supplier submission for {OrderNumber} ({Supplier}); expected latency {DelayMs} ms",
             order.OrderNumber, order.SupplierCode, delay.TotalMilliseconds);
 
-        if (delay > TimeSpan.Zero)
+        try
         {
-            await Task.Delay(delay, timeProvider, cancellationToken);
+            if (delay > TimeSpan.Zero)
+            {
+                await Task.Delay(delay, timeProvider, cancellationToken);
+            }
+
+            var duration = Stopwatch.GetElapsedTime(startedAt);
+            activity?.SetTag("supplier.preparation.outcome", "completed");
+            activity?.SetTag("supplier.preparation.duration", duration.TotalSeconds);
+            PurchaseOrderTelemetry.RecordSupplierPreparation(duration.TotalSeconds, slow, "completed");
+            logger.LogInformation(
+                "Prepared simulated supplier submission for {OrderNumber} ({Supplier}) in {DurationMs} ms",
+                order.OrderNumber, order.SupplierCode, duration.TotalMilliseconds);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            var duration = Stopwatch.GetElapsedTime(startedAt);
+            activity?.SetTag("supplier.preparation.outcome", "cancelled");
+            activity?.SetStatus(ActivityStatusCode.Error, "Preparation was cancelled.");
+            PurchaseOrderTelemetry.RecordSupplierPreparation(duration.TotalSeconds, slow, "cancelled");
+            logger.LogWarning(
+                "Cancelled simulated supplier submission for {OrderNumber} ({Supplier}) after {DurationMs} ms",
+                order.OrderNumber, order.SupplierCode, duration.TotalMilliseconds);
+            throw;
         }
     }
 }
