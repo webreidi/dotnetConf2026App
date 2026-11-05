@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using PurchaseOrders.Api.Data;
 using PurchaseOrders.Api.Domain;
+using PurchaseOrders.Api.Observability;
 using PurchaseOrders.Contracts;
 
 namespace PurchaseOrders.Api.Services;
@@ -58,9 +60,11 @@ public sealed class PurchaseOrderService(
 
     public async Task<CreateDraftResult> CreateDraftAsync(CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
+        using var activity = PurchaseOrderTelemetry.ActivitySource.StartActivity("purchase_order.create_draft");
         var errors = PurchaseOrderValidator.Validate(request);
         if (errors.Count > 0)
         {
+            RecordDraftCreation(activity, "invalid");
             return new CreateDraftResult.Invalid(errors);
         }
 
@@ -68,6 +72,7 @@ public sealed class PurchaseOrderService(
         var supplier = await db.Suppliers.SingleOrDefaultAsync(s => s.Code == supplierCode, cancellationToken);
         if (supplier is null || !supplier.IsActive)
         {
+            RecordDraftCreation(activity, "supplier_unavailable");
             return new CreateDraftResult.Invalid(new Dictionary<string, string[]>
             {
                 [nameof(request.SupplierCode)] = [$"Supplier '{supplierCode}' was not found or is inactive."],
@@ -85,12 +90,19 @@ public sealed class PurchaseOrderService(
         db.PurchaseOrders.Add(order);
         await db.SaveChangesAsync(cancellationToken);
 
+        RecordDraftCreation(activity, "created");
         logger.LogInformation("Created draft purchase order {OrderNumber} for {Supplier} totaling {Total}",
             order.OrderNumber, order.SupplierCode, order.Total);
 
         await supplierSimulator.PrepareDraftSubmissionAsync(order, cancellationToken);
 
         return new CreateDraftResult.Created(order.ToDto());
+    }
+
+    private static void RecordDraftCreation(Activity? activity, string outcome)
+    {
+        activity?.SetTag("purchase_order.outcome", outcome);
+        PurchaseOrderTelemetry.RecordDraftCreation(outcome);
     }
 }
 
