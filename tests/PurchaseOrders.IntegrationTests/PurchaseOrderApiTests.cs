@@ -1,4 +1,6 @@
 using System.Net.Http.Json;
+using System.Text.Json;
+using PurchaseOrders.Client;
 using PurchaseOrders.Contracts;
 
 namespace PurchaseOrders.IntegrationTests;
@@ -53,6 +55,48 @@ public class PurchaseOrderApiTests(PurchaseOrdersAppFixture fixture)
         var list = await _api.GetFromJsonAsync<List<PurchaseOrderSummaryDto>>("/api/purchase-orders?supplierCode=NWIND");
         Assert.NotNull(list);
         Assert.Contains(list, o => o.Id == created.Id && o.LineCount == 2);
+    }
+
+    [Fact]
+    public async Task Exporting_saved_drafts_includes_persisted_data_without_changing_orders()
+    {
+        var createdOrders = new List<PurchaseOrderDto>();
+        foreach (var supplier in new[] { "ACME", "NWIND" })
+        {
+            var request = new CreatePurchaseOrderRequest(supplier, $"Saved notes for {supplier}", [
+                new("EXPORT-1", "First saved line", 2, 1.25m),
+                new("EXPORT-2", "Second saved line", 3, 2.50m),
+            ]);
+            using var response = await _api.PostAsJsonAsync("/api/purchase-orders", request);
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var created = await response.Content.ReadFromJsonAsync<PurchaseOrderDto>();
+            Assert.NotNull(created);
+            var saved = await _api.GetFromJsonAsync<PurchaseOrderDto>($"/api/purchase-orders/{created.Id}");
+            Assert.NotNull(saved);
+            createdOrders.Add(saved);
+        }
+        var before = await _api.GetFromJsonAsync<List<PurchaseOrderSummaryDto>>("/api/purchase-orders");
+        using var exportHttp = fixture.CreateApiClient();
+        var client = new PurchaseOrdersApiClient(exportHttp, new PurchaseOrdersClientOptions { MaxAttempts = 1 });
+
+        var report = await PurchaseOrderReportGenerator.GenerateAsync(client, createdOrders.Select(order => order.Id));
+
+        foreach (var order in createdOrders)
+        {
+            Assert.Contains(order.OrderNumber, report);
+            Assert.Contains(order.Id.ToString(), report);
+            Assert.Contains(order.SupplierName, report);
+            Assert.Contains(order.Notes!, report);
+            Assert.Contains("EXPORT-1", report);
+            Assert.Contains("First saved line", report);
+            Assert.Contains("EXPORT-2", report);
+            Assert.Contains("Second saved line", report);
+            var after = await client.GetPurchaseOrderAsync(order.Id);
+            Assert.Equal(JsonSerializer.Serialize(order), JsonSerializer.Serialize(after));
+        }
+        Assert.Equal(2, report.Split("has not been sent to suppliers").Length - 1);
+        var afterList = await _api.GetFromJsonAsync<List<PurchaseOrderSummaryDto>>("/api/purchase-orders");
+        Assert.Equal(JsonSerializer.Serialize(before), JsonSerializer.Serialize(afterList));
     }
 
     [Fact]

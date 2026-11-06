@@ -16,6 +16,7 @@ public sealed class PurchaseOrderForm : Form
     private readonly Button _createButton = new() { Text = "Create draft PO", AutoSize = true };
     private readonly Button _clearButton = new() { Text = "Clear", AutoSize = true };
     private readonly Button _refreshButton = new() { Text = "Refresh", AutoSize = true };
+    private readonly Button _generateReportButton = new() { Text = "Generate report", AutoSize = true, Enabled = false };
     private readonly DataGridView _recentGrid = new()
     {
         Dock = DockStyle.Fill,
@@ -24,6 +25,7 @@ public sealed class PurchaseOrderForm : Form
         AllowUserToDeleteRows = false,
         AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
         SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+        MultiSelect = true,
     };
     private readonly ToolStripStatusLabel _statusLabel = new() { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
 
@@ -44,6 +46,8 @@ public sealed class PurchaseOrderForm : Form
         _createButton.Click += async (_, _) => await CreateDraftAsync();
         _clearButton.Click += (_, _) => ResetForm();
         _refreshButton.Click += async (_, _) => await RefreshAsync();
+        _generateReportButton.Click += async (_, _) => await GenerateReportAsync();
+        _recentGrid.SelectionChanged += (_, _) => UpdateReportButton();
         Load += async (_, _) => await InitializeAsync();
     }
 
@@ -73,6 +77,13 @@ public sealed class PurchaseOrderForm : Form
         var recentGroup = new GroupBox { Text = "Recent draft orders", Dock = DockStyle.Fill, Padding = new Padding(8) };
         var recentToolbar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true };
         recentToolbar.Controls.Add(_refreshButton);
+        recentToolbar.Controls.Add(_generateReportButton);
+        recentToolbar.Controls.Add(new Label
+        {
+            Text = "Select rows with Ctrl or Shift to report multiple drafts.",
+            AutoSize = true,
+            Margin = new Padding(8, 8, 0, 0),
+        });
         recentGroup.Controls.Add(_recentGrid);
         recentGroup.Controls.Add(recentToolbar);
 
@@ -164,6 +175,62 @@ public sealed class PurchaseOrderForm : Form
                 totalColumn.DefaultCellStyle.Format = "N2";
             }
             SetStatus($"Loaded {orders.Count} draft orders.");
+        });
+    }
+
+    private async Task GenerateReportAsync()
+    {
+        var selectedOrders = _recentGrid.SelectedRows.Cast<DataGridViewRow>()
+            .OrderBy(row => row.Index)
+            .Select(row => row.DataBoundItem)
+            .OfType<PurchaseOrderSummaryDto>()
+            .ToArray();
+        if (selectedOrders.Length == 0)
+        {
+            SetStatus("Select at least one saved draft order to generate a report.");
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            Title = "Save draft purchase order report",
+            Filter = "Text document (*.txt)|*.txt",
+            DefaultExt = "txt",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = selectedOrders.Length == 1
+                ? $"draft-{selectedOrders[0].Id:D}.txt"
+                : "draft-purchase-orders.txt",
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            SetStatus("Report generation canceled.");
+            return;
+        }
+
+        await RunBusyAsync("Generating saved draft order report...", async () =>
+        {
+            try
+            {
+                var report = await PurchaseOrderReportGenerator.GenerateAsync(_client, selectedOrders.Select(order => order.Id));
+                // Stage beside the destination so a failed write cannot truncate an existing document.
+                var temporaryPath = Path.Combine(Path.GetDirectoryName(dialog.FileName)!, $".{Guid.NewGuid():N}.tmp");
+                try
+                {
+                    await File.WriteAllTextAsync(temporaryPath, report);
+                    File.Move(temporaryPath, dialog.FileName, overwrite: true);
+                }
+                finally
+                {
+                    File.Delete(temporaryPath);
+                }
+                SetStatus($"Saved report for {selectedOrders.Length} draft orders to {dialog.FileName}. Drafts have not been sent to suppliers.");
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or System.Text.Json.JsonException)
+            {
+                SetStatus($"Report generation failed: {ex.Message}");
+                MessageBox.Show(this, ex.Message, "Report generation failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         });
     }
 
@@ -316,6 +383,8 @@ public sealed class PurchaseOrderForm : Form
     private void SetInputsEnabled(bool enabled)
     {
         _createButton.Enabled = _refreshButton.Enabled = _clearButton.Enabled = enabled;
+        _recentGrid.Enabled = enabled;
+        UpdateReportButton();
         _supplierCombo.Enabled = enabled;
         _notesBox.ReadOnly = !enabled;
         _linesGrid.ReadOnly = !enabled;
@@ -326,6 +395,9 @@ public sealed class PurchaseOrderForm : Form
             _linesGrid.Columns["LineTotal"]!.ReadOnly = true;
         }
     }
+
+    private void UpdateReportButton() =>
+        _generateReportButton.Enabled = _refreshButton.Enabled && _recentGrid.SelectedRows.Count > 0;
 
     private void SetStatus(string message) => _statusLabel.Text = message;
 }

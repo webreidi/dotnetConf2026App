@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "packages": {
+    "markout": {
+      "versions": {
+        "0.40.1": {
+          "skills": [
+            "markout",
+            "markout-built-in-shapes",
+            "markout-composite-cells-cards",
+            "markout-conditional-composition",
+            "markout-output-formats"
+          ]
+        }
+      }
+    }
+  }
+}
