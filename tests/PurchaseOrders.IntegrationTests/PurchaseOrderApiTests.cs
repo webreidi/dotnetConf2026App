@@ -100,6 +100,56 @@ public class PurchaseOrderApiTests(PurchaseOrdersAppFixture fixture)
     }
 
     [Fact]
+    public async Task Duplicate_report_finds_all_matching_orders_without_changing_them()
+    {
+        var notes = $"Duplicate report {Guid.NewGuid():N}";
+        var request = new CreatePurchaseOrderRequest("ACME", notes, [
+            new("DUP-1", "First duplicate line", 2, 1.25m),
+            new("DUP-2", "Second duplicate line", 3, 2.50m),
+        ]);
+        var savedOrders = new List<PurchaseOrderDto>();
+        for (var i = 0; i < 3; i++)
+        {
+            using var response = await _api.PostAsJsonAsync("/api/purchase-orders", request);
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var order = await response.Content.ReadFromJsonAsync<PurchaseOrderDto>();
+            Assert.NotNull(order);
+            var saved = await _api.GetFromJsonAsync<PurchaseOrderDto>($"/api/purchase-orders/{order.Id}");
+            Assert.NotNull(saved);
+            savedOrders.Add(saved);
+        }
+        using var uniqueResponse = await _api.PostAsJsonAsync("/api/purchase-orders", request with { Notes = $"{notes} unique" });
+        Assert.Equal(HttpStatusCode.Created, uniqueResponse.StatusCode);
+        var unique = await uniqueResponse.Content.ReadFromJsonAsync<PurchaseOrderDto>();
+        Assert.NotNull(unique);
+        for (var i = 0; i < 50; i++)
+        {
+            using var response = await _api.PostAsJsonAsync("/api/purchase-orders", request with { Notes = $"{notes} filler {i}" });
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        }
+        using var http = fixture.CreateApiClient();
+        var client = new PurchaseOrdersApiClient(http, new PurchaseOrdersClientOptions { MaxAttempts = 1 });
+        var recent = await client.ListPurchaseOrdersAsync();
+        Assert.DoesNotContain(recent, order => savedOrders.Any(saved => saved.Id == order.Id));
+
+        var duplicates = await client.ListDuplicatePurchaseOrdersAsync();
+        var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(client);
+
+        Assert.Equal(3, duplicates.Count(order => order.Notes == notes));
+        Assert.DoesNotContain(duplicates, order => order.Id == unique.Id);
+        Assert.DoesNotContain(unique.Id.ToString(), report);
+        foreach (var order in savedOrders)
+        {
+            Assert.Contains(duplicates, duplicate => duplicate.Id == order.Id);
+            Assert.Contains(order.Id.ToString(), report);
+            Assert.Contains(order.OrderNumber, report);
+            var after = await client.GetPurchaseOrderAsync(order.Id);
+            Assert.Equal(JsonSerializer.Serialize(order), JsonSerializer.Serialize(after));
+        }
+        Assert.Contains("Second duplicate line", report);
+    }
+
+    [Fact]
     public async Task Invalid_request_returns_validation_problem()
     {
         var request = new CreatePurchaseOrderRequest("ACME", null, [new("BOLT-10", "Hex bolt", 0, 0.35m)]);

@@ -16,7 +16,7 @@ public sealed class PurchaseOrderForm : Form
     private readonly Button _createButton = new() { Text = "Create draft PO", AutoSize = true };
     private readonly Button _clearButton = new() { Text = "Clear", AutoSize = true };
     private readonly Button _refreshButton = new() { Text = "Refresh", AutoSize = true };
-    private readonly Button _generateReportButton = new() { Text = "Generate report", AutoSize = true, Enabled = false };
+    private readonly Button _generateReportButton = new() { Text = "Generate Duplicate Records Report", AutoSize = true, Enabled = false };
     private readonly DataGridView _recentGrid = new()
     {
         Dock = DockStyle.Fill,
@@ -47,7 +47,6 @@ public sealed class PurchaseOrderForm : Form
         _clearButton.Click += (_, _) => ResetForm();
         _refreshButton.Click += async (_, _) => await RefreshAsync();
         _generateReportButton.Click += async (_, _) => await GenerateReportAsync();
-        _recentGrid.SelectionChanged += (_, _) => UpdateReportButton();
         Load += async (_, _) => await InitializeAsync();
     }
 
@@ -80,7 +79,7 @@ public sealed class PurchaseOrderForm : Form
         recentToolbar.Controls.Add(_generateReportButton);
         recentToolbar.Controls.Add(new Label
         {
-            Text = "Select rows with Ctrl or Shift to report multiple drafts.",
+            Text = "Report checks all saved orders; no selection needed.",
             AutoSize = true,
             Margin = new Padding(8, 8, 0, 0),
         });
@@ -180,27 +179,14 @@ public sealed class PurchaseOrderForm : Form
 
     private async Task GenerateReportAsync()
     {
-        var selectedOrders = _recentGrid.SelectedRows.Cast<DataGridViewRow>()
-            .OrderBy(row => row.Index)
-            .Select(row => row.DataBoundItem)
-            .OfType<PurchaseOrderSummaryDto>()
-            .ToArray();
-        if (selectedOrders.Length == 0)
-        {
-            SetStatus("Select at least one saved draft order to generate a report.");
-            return;
-        }
-
         using var dialog = new SaveFileDialog
         {
-            Title = "Save draft purchase order report",
+            Title = "Save duplicate purchase orders report",
             Filter = "Text document (*.txt)|*.txt",
             DefaultExt = "txt",
             AddExtension = true,
             OverwritePrompt = true,
-            FileName = selectedOrders.Length == 1
-                ? $"draft-{selectedOrders[0].Id:D}.txt"
-                : "draft-purchase-orders.txt",
+            FileName = "duplicate-purchase-orders.txt",
         };
         if (dialog.ShowDialog(this) != DialogResult.OK)
         {
@@ -208,11 +194,11 @@ public sealed class PurchaseOrderForm : Form
             return;
         }
 
-        await RunBusyAsync("Generating saved draft order report...", async () =>
+        await RunBusyAsync("Checking all saved orders for duplicates...", async () =>
         {
             try
             {
-                var report = await PurchaseOrderReportGenerator.GenerateAsync(_client, selectedOrders.Select(order => order.Id));
+                var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(_client);
                 // Stage beside the destination so a failed write cannot truncate an existing document.
                 var temporaryPath = Path.Combine(Path.GetDirectoryName(dialog.FileName)!, $".{Guid.NewGuid():N}.tmp");
                 try
@@ -224,7 +210,7 @@ public sealed class PurchaseOrderForm : Form
                 {
                     File.Delete(temporaryPath);
                 }
-                SetStatus($"Saved report for {selectedOrders.Length} draft orders to {dialog.FileName}. Drafts have not been sent to suppliers.");
+                SetStatus($"Saved duplicate purchase orders report to {dialog.FileName}. Drafts have not been sent to suppliers.");
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or System.Text.Json.JsonException)
             {
@@ -397,7 +383,7 @@ public sealed class PurchaseOrderForm : Form
     }
 
     private void UpdateReportButton() =>
-        _generateReportButton.Enabled = _refreshButton.Enabled && _recentGrid.SelectedRows.Count > 0;
+        _generateReportButton.Enabled = _refreshButton.Enabled;
 
     private void SetStatus(string message) => _statusLabel.Text = message;
 }

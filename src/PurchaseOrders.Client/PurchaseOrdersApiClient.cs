@@ -44,6 +44,13 @@ public sealed class PurchaseOrdersApiClient
             return await ReadAsync<IReadOnlyList<PurchaseOrderSummaryDto>>(response, ct);
         }, cancellationToken);
 
+    public Task<IReadOnlyList<PurchaseOrderDto>> ListDuplicatePurchaseOrdersAsync(CancellationToken cancellationToken = default) =>
+        SendAsync(async ct =>
+        {
+            using var response = await _http.GetAsync("api/purchase-orders/duplicates", ct);
+            return await ReadAsync<IReadOnlyList<PurchaseOrderDto>>(response, ct);
+        }, cancellationToken);
+
     public Task<PurchaseOrderDto> GetPurchaseOrderAsync(Guid id, CancellationToken cancellationToken = default) =>
         SendAsync(async ct =>
         {

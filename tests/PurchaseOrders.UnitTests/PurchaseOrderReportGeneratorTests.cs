@@ -8,6 +8,52 @@ namespace PurchaseOrders.UnitTests;
 
 public class PurchaseOrderReportGeneratorTests
 {
+    [Fact]
+    public async Task GenerateDuplicatesAsync_exports_all_returned_duplicates_with_full_details()
+    {
+        var first = SampleOrder();
+        var second = first with { Id = Guid.NewGuid(), OrderNumber = "PO-COPY", CreatedAt = first.CreatedAt.AddDays(1) };
+        var handler = new OrderHandler(first, second);
+
+        var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(CreateClient(handler));
+
+        Assert.Contains("Duplicate records: 2", report);
+        foreach (var order in new[] { first, second })
+        {
+            Assert.Contains($"Order ID: {order.Id:D}", report);
+            Assert.Contains($"Purchase order: {order.OrderNumber}", report);
+            Assert.Contains($"Created at: {order.CreatedAt:O}", report);
+        }
+        Assert.Equal(2, report.Split("Line number: 2").Length - 1);
+        Assert.Contains(first.SupplierName, report);
+        Assert.Contains(first.Notes!, report);
+        Assert.Contains("NUT-20", report);
+        Assert.Equal(["/api/purchase-orders/duplicates"], handler.Paths);
+    }
+
+    [Fact]
+    public async Task GenerateDuplicatesAsync_explicitly_reports_no_duplicates()
+    {
+        var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(CreateClient(new OrderHandler()));
+
+        Assert.Contains("Duplicate records: 0", report);
+        Assert.Contains("No duplicate purchase orders found.", report);
+        Assert.DoesNotContain("Purchase order:", report);
+    }
+
+    [Fact]
+    public async Task GenerateDuplicatesAsync_honors_cancellation_without_requests()
+    {
+        var handler = new OrderHandler();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            PurchaseOrderReportGenerator.GenerateDuplicatesAsync(CreateClient(handler), cts.Token));
+
+        Assert.Empty(handler.Paths);
+    }
+
     private static PurchaseOrderDto SampleOrder(string number = "PO-SAVED-001") => new(
         Guid.NewGuid(), number, "ACME", "Acme Industrial Supply", "Draft", "Deliver to warehouse",
         19.875m, new DateTimeOffset(2026, 11, 5, 12, 30, 0, TimeSpan.FromHours(-8)),
@@ -147,6 +193,10 @@ public class PurchaseOrderReportGeneratorTests
             Assert.Equal(HttpMethod.Get, request.Method);
             var path = request.RequestUri!.AbsolutePath;
             Paths.Add(path);
+            if (path == "/api/purchase-orders/duplicates")
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(orders) });
+            }
             var order = orders.SingleOrDefault(order => path == $"/api/purchase-orders/{order.Id:D}");
             return Task.FromResult(order is null
                 ? new HttpResponseMessage(HttpStatusCode.NotFound)
