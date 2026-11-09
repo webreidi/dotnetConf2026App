@@ -153,18 +153,24 @@ public sealed class PurchaseOrderForm : Form
     {
         await RunBusyAsync("Loading recent orders...", async () =>
         {
-            var orders = await _client.ListPurchaseOrdersAsync();
-            _recentGrid.DataSource = new BindingList<PurchaseOrderSummaryDto>(orders.ToList());
-            if (_recentGrid.Columns[nameof(PurchaseOrderSummaryDto.Id)] is { } idColumn)
-            {
-                idColumn.Visible = false;
-            }
-            if (_recentGrid.Columns[nameof(PurchaseOrderSummaryDto.Total)] is { } totalColumn)
-            {
-                totalColumn.DefaultCellStyle.Format = "N2";
-            }
-            SetStatus($"Loaded {orders.Count} draft orders.");
+            await LoadRecentOrdersCoreAsync();
         });
+    }
+
+    private async Task<int> LoadRecentOrdersCoreAsync()
+    {
+        var orders = await _client.ListPurchaseOrdersAsync();
+        _recentGrid.DataSource = new BindingList<PurchaseOrderSummaryDto>(orders.ToList());
+        if (_recentGrid.Columns[nameof(PurchaseOrderSummaryDto.Id)] is { } idColumn)
+        {
+            idColumn.Visible = false;
+        }
+        if (_recentGrid.Columns[nameof(PurchaseOrderSummaryDto.Total)] is { } totalColumn)
+        {
+            totalColumn.DefaultCellStyle.Format = "N2";
+        }
+        SetStatus($"Loaded {orders.Count} draft orders.");
+        return orders.Count;
     }
 
     private async Task CreateDraftAsync()
@@ -185,19 +191,55 @@ public sealed class PurchaseOrderForm : Form
 
         await RunBusyAsync("Creating draft purchase order...", async () =>
         {
+            PurchaseOrderDto order;
             try
             {
-                var order = await _client.CreateDraftAsync(request);
-                SetStatus($"Draft {order.OrderNumber} created for {order.SupplierName} — total {order.Total:N2}.");
-                ResetForm(keepStatus: true);
-                await LoadRecentOrdersAsync();
+                order = await _client.CreateDraftAsync(request);
             }
             catch (PurchaseOrderValidationException ex)
             {
                 var details = string.Join(Environment.NewLine, ex.Errors.SelectMany(e => e.Value.Select(v => $"• {e.Key}: {v}")));
                 MessageBox.Show(this, details, "Please fix the purchase order", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                SetStatus("Validation failed.");
+                SetStatus("Validation failed; refreshing recent orders...");
+                try
+                {
+                    await LoadRecentOrdersCoreAsync();
+                    SetStatus("Validation failed. Recent orders refreshed.");
+                }
+                catch (Exception refreshException) when (refreshException is HttpRequestException or TimeoutException or System.Text.Json.JsonException or InvalidOperationException)
+                {
+                    SetStatus($"Validation failed; recent-order refresh failed: {refreshException.Message}");
+                }
+
+                return;
             }
+            catch (Exception ex) when (ex is HttpRequestException or TimeoutException or System.Text.Json.JsonException or InvalidOperationException)
+            {
+                SetStatus("Submission was not confirmed; refreshing recent orders...");
+                var refreshFailure = string.Empty;
+                try
+                {
+                    var count = await LoadRecentOrdersCoreAsync();
+                    SetStatus($"Submission was not confirmed. Refreshed {count} recent orders; review the list before retrying.");
+                }
+                catch (Exception refreshException) when (refreshException is HttpRequestException or TimeoutException or System.Text.Json.JsonException or InvalidOperationException)
+                {
+                    refreshFailure = $" Recent orders could not be refreshed: {refreshException.Message}";
+                    SetStatus($"Submission was not confirmed; recent-order refresh failed: {refreshException.Message}");
+                }
+
+                MessageBox.Show(
+                    this,
+                    $"The purchase order could not be confirmed: {ex.Message}{Environment.NewLine}{Environment.NewLine}The server may still have created it. Review the recent-orders list before retrying.{refreshFailure}",
+                    "Submission not confirmed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            SetStatus($"Draft {order.OrderNumber} created for {order.SupplierName} — total {order.Total:N2}.");
+            ResetForm(keepStatus: true);
+            await LoadRecentOrdersCoreAsync();
         });
     }
 
