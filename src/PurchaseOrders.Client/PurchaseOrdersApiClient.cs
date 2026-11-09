@@ -58,13 +58,31 @@ public sealed class PurchaseOrdersApiClient
             return await ReadAsync<PurchaseOrderDto>(response, ct);
         }, cancellationToken);
 
-    public Task<PurchaseOrderDto> CreateDraftAsync(CreatePurchaseOrderRequest request, CancellationToken cancellationToken = default)
+    public Task<PurchaseOrderDto> CreateDraftAsync(CreatePurchaseOrderRequest request, CancellationToken cancellationToken = default) =>
+        CreateDraftAsync(Guid.NewGuid(), request, cancellationToken);
+
+    /// <summary>
+    /// Creates or replays a draft submission. Persist the identity and payload together before sending;
+    /// reuse both after an unconfirmed outcome, and use a new identity for a new submission.
+    /// </summary>
+    public Task<PurchaseOrderDto> CreateDraftAsync(Guid submissionId, CreatePurchaseOrderRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        if (submissionId == Guid.Empty)
+        {
+            throw new ArgumentException("A submission identity must be a nonempty UUID.", nameof(submissionId));
+        }
+
+        var payload = JsonSerializer.Serialize(request, JsonOptions);
 
         return SendAsync(async ct =>
         {
-            using var response = await _http.PostAsJsonAsync("api/purchase-orders", request, JsonOptions, ct);
+            using var message = new HttpRequestMessage(HttpMethod.Post, "api/purchase-orders")
+            {
+                Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json"),
+            };
+            message.Headers.Add("Idempotency-Key", submissionId.ToString("D"));
+            using var response = await _http.SendAsync(message, ct);
             return await ReadAsync<PurchaseOrderDto>(response, ct);
         }, cancellationToken);
     }

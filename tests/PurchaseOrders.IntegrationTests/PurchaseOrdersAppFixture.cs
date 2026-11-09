@@ -11,7 +11,15 @@ public sealed class PurchaseOrdersAppFixture : IAsyncLifetime
 
     public HttpClient Api { get; private set; } = null!;
 
-    public HttpClient CreateApiClient() => _app!.CreateHttpClient("api", "https");
+    public string DatabaseConnectionString { get; private set; } = null!;
+
+    public HttpClient CreateApiClient(bool addSubmissionIdentity = true)
+    {
+        var client = _app!.CreateHttpClient("api", "https");
+        return addSubmissionIdentity
+            ? new HttpClient(new SubmissionIdentityHandler(client)) { BaseAddress = client.BaseAddress }
+            : client;
+    }
 
     public async Task InitializeAsync()
     {
@@ -35,6 +43,8 @@ public sealed class PurchaseOrdersAppFixture : IAsyncLifetime
         await _app.StartAsync(cts.Token);
         await _app.ResourceNotifications.WaitForResourceHealthyAsync("api", cts.Token);
 
+        DatabaseConnectionString = await _app.GetConnectionStringAsync("purchasingdb", cts.Token)
+            ?? throw new InvalidOperationException("The test database connection string is unavailable.");
         Api = CreateApiClient();
     }
 
@@ -44,6 +54,40 @@ public sealed class PurchaseOrdersAppFixture : IAsyncLifetime
         if (_app is not null)
         {
             await _app.DisposeAsync();
+        }
+    }
+
+    private sealed class SubmissionIdentityHandler(HttpClient client) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.Method == HttpMethod.Post &&
+                request.RequestUri?.AbsolutePath == "/api/purchase-orders" &&
+                !request.Headers.Contains("Idempotency-Key"))
+            {
+                request.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString("D"));
+            }
+
+            using var forwarded = new HttpRequestMessage(request.Method, request.RequestUri)
+            {
+                Content = request.Content,
+                Version = request.Version,
+                VersionPolicy = request.VersionPolicy,
+            };
+            foreach (var header in request.Headers)
+            {
+                forwarded.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+            return await client.SendAsync(forwarded, cancellationToken);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                client.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

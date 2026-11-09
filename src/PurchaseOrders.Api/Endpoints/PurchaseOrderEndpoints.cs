@@ -31,15 +31,29 @@ public static class PurchaseOrderEndpoints
             .Produces<PurchaseOrderDto>()
             .Produces(StatusCodes.Status404NotFound);
 
-        orders.MapPost("/", async (CreatePurchaseOrderRequest request, PurchaseOrderService service, CancellationToken ct) =>
-                await service.CreateDraftAsync(request, ct) switch
+        orders.MapPost("/", async (CreatePurchaseOrderRequest request, HttpContext context, PurchaseOrderService service, CancellationToken ct) =>
+            {
+                var keys = context.Request.Headers["Idempotency-Key"];
+                if (keys.Count != 1 || !Guid.TryParse(keys[0], out var submissionId) || submissionId == Guid.Empty)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["Idempotency-Key"] = ["Supply exactly one nonempty UUID, reused for retries of this submission."],
+                    });
+                }
+
+                return await service.CreateDraftAsync(submissionId, request, ct) switch
                 {
                     CreateDraftResult.Created created => Results.Created($"/api/purchase-orders/{created.Order.Id}", created.Order),
                     CreateDraftResult.Invalid invalid => Results.ValidationProblem(invalid.Errors),
+                    CreateDraftResult.Conflict => Results.Problem(statusCode: StatusCodes.Status409Conflict,
+                        title: "Submission identity already used with different purchase-order data."),
                     _ => Results.StatusCode(StatusCodes.Status500InternalServerError),
-                })
+                };
+            })
             .WithName("CreateDraftPurchaseOrder")
             .Produces<PurchaseOrderDto>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesValidationProblem();
 
         return app;

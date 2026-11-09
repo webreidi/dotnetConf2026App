@@ -11,6 +11,7 @@ public abstract record CreateDraftResult
 {
     public sealed record Created(PurchaseOrderDto Order) : CreateDraftResult;
     public sealed record Invalid(IDictionary<string, string[]> Errors) : CreateDraftResult;
+    public sealed record Conflict : CreateDraftResult;
 }
 
 public sealed class PurchaseOrderService(
@@ -72,7 +73,7 @@ public sealed class PurchaseOrderService(
         return order is null ? null : order.ToDto();
     }
 
-    public async Task<CreateDraftResult> CreateDraftAsync(CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
+    public async Task<CreateDraftResult> CreateDraftAsync(Guid submissionId, CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
         using var activity = PurchaseOrderTelemetry.ActivitySource.StartActivity("purchase_order.create_draft");
         var errors = PurchaseOrderValidator.Validate(request);
@@ -82,35 +83,80 @@ public sealed class PurchaseOrderService(
             return new CreateDraftResult.Invalid(errors);
         }
 
-        var supplierCode = request.SupplierCode.Trim().ToUpperInvariant();
-        var supplier = await db.Suppliers.SingleOrDefaultAsync(s => s.Code == supplierCode, cancellationToken);
-        if (supplier is null || !supplier.IsActive)
+        if (submissionId == Guid.Empty)
         {
-            RecordDraftCreation(activity, "supplier_unavailable");
             return new CreateDraftResult.Invalid(new Dictionary<string, string[]>
             {
-                [nameof(request.SupplierCode)] = [$"Supplier '{supplierCode}' was not found or is inactive."],
+                ["Idempotency-Key"] = ["A nonempty UUID submission identity is required."],
             });
         }
 
-        var now = timeProvider.GetUtcNow();
-        var order = PurchaseOrder.CreateDraft(
-            supplier,
-            OrderNumberGenerator.Create(now),
-            request.Notes,
-            request.Lines.Select(l => new NewPurchaseOrderLine(l.Sku, l.Description, l.Quantity, l.UnitPrice)),
-            now);
+        var payload = SubmissionSerialization.NormalizePayload(request);
+        var persisted = await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            // A retry after an ambiguous commit must re-read the ledger, not re-save tracked inserts.
+            db.ChangeTracker.Clear();
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtextextended({submissionId.ToString("D")}, 0))", cancellationToken);
+            var saved = await db.Submissions.AsNoTracking().SingleOrDefaultAsync(s => s.Id == submissionId, cancellationToken);
+            if (saved is not null)
+            {
+                if (SubmissionSerialization.NormalizePayload(saved.RequestPayload) != payload)
+                {
+                    logger.LogWarning("Conflicting payload for submission {SubmissionId}", submissionId);
+                    return (Result: (CreateDraftResult)new CreateDraftResult.Conflict(), NewOrder: (PurchaseOrder?)null);
+                }
 
-        db.PurchaseOrders.Add(order);
-        await db.SaveChangesAsync(cancellationToken);
+                var response = SubmissionSerialization.ReadResponse(saved.ResponseJson
+                    ?? throw new InvalidOperationException("The submission response was not initialized."));
+                return (Result: (CreateDraftResult)new CreateDraftResult.Created(response), NewOrder: (PurchaseOrder?)null);
+            }
 
+            var supplierCode = request.SupplierCode.Trim().ToUpperInvariant();
+            var supplier = await db.Suppliers.SingleOrDefaultAsync(s => s.Code == supplierCode, cancellationToken);
+            if (supplier is null || !supplier.IsActive)
+            {
+                RecordDraftCreation(activity, "supplier_unavailable");
+                return (Result: (CreateDraftResult)new CreateDraftResult.Invalid(new Dictionary<string, string[]>
+                {
+                    [nameof(request.SupplierCode)] = [$"Supplier '{supplierCode}' was not found or is inactive."],
+                }), NewOrder: (PurchaseOrder?)null);
+            }
+
+            var now = timeProvider.GetUtcNow();
+            var order = PurchaseOrder.CreateDraft(
+                supplier,
+                OrderNumberGenerator.Create(now),
+                request.Notes,
+                request.Lines.Select(l => new NewPurchaseOrderLine(l.Sku, l.Description, l.Quantity, l.UnitPrice)),
+                now);
+
+            db.PurchaseOrders.Add(order);
+            var dto = order.ToDto();
+            db.Submissions.Add(new PurchaseOrderSubmission
+            {
+                Id = submissionId,
+                RequestPayload = payload,
+                PurchaseOrderId = order.Id,
+                ResponseJson = SubmissionSerialization.SerializeResponse(dto),
+            });
+            await db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return (Result: (CreateDraftResult)new CreateDraftResult.Created(dto), NewOrder: (PurchaseOrder?)order);
+        });
+
+        if (persisted.NewOrder is not { } createdOrder)
+        {
+            return persisted.Result;
+        }
         RecordDraftCreation(activity, "created");
         logger.LogInformation("Created draft purchase order {OrderNumber} for {Supplier} totaling {Total}",
-            order.OrderNumber, order.SupplierCode, order.Total);
+            createdOrder.OrderNumber, createdOrder.SupplierCode, createdOrder.Total);
 
-        await supplierSimulator.PrepareDraftSubmissionAsync(order, cancellationToken);
+        await supplierSimulator.PrepareDraftSubmissionAsync(createdOrder, cancellationToken);
 
-        return new CreateDraftResult.Created(order.ToDto());
+        return persisted.Result;
     }
 
     private static void RecordDraftCreation(Activity? activity, string outcome)

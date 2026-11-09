@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\PurchaseOrders.Api\PurchaseOrders.Api.csproj" />
     <ProjectReference Include="..\..\src\PurchaseOrders.AppHost\PurchaseOrders.AppHost.csproj" />
     <ProjectReference Include="..\..\src\PurchaseOrders.Contracts\PurchaseOrders.Contracts.csproj" />
     <ProjectReference Include="..\..\src\PurchaseOrders.Client\PurchaseOrders.Client.csproj" />

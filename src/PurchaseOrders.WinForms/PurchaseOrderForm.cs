@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Globalization;
+using System.Text.Json;
 using PurchaseOrders.Client;
 using PurchaseOrders.Contracts;
 
@@ -8,6 +9,8 @@ namespace PurchaseOrders.WinForms;
 public sealed class PurchaseOrderForm : Form
 {
     private readonly PurchaseOrdersApiClient _client;
+    private Guid _submissionId;
+    private string? _submissionPayload;
 
     private readonly ComboBox _supplierCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
     private readonly TextBox _notesBox = new() { Dock = DockStyle.Fill, MaxLength = 500 };
@@ -228,6 +231,11 @@ public sealed class PurchaseOrderForm : Form
 
     private async Task CreateDraftAsync()
     {
+        if (!_createButton.Enabled || !_linesGrid.EndEdit())
+        {
+            return;
+        }
+
         if (_supplierCombo.SelectedValue is not string supplierCode)
         {
             SetStatus("Choose a supplier first.");
@@ -241,13 +249,19 @@ public sealed class PurchaseOrderForm : Form
         }
 
         var request = new CreatePurchaseOrderRequest(supplierCode, _notesBox.Text, lines);
+        var payload = JsonSerializer.Serialize(request);
+        if (!string.Equals(payload, _submissionPayload, StringComparison.Ordinal))
+        {
+            _submissionId = Guid.NewGuid();
+            _submissionPayload = payload;
+        }
 
         await RunBusyAsync("Creating draft purchase order...", async () =>
         {
             PurchaseOrderDto order;
             try
             {
-                order = await _client.CreateDraftAsync(request);
+                order = await _client.CreateDraftAsync(_submissionId, request);
             }
             catch (PurchaseOrderValidationException ex)
             {
@@ -273,7 +287,7 @@ public sealed class PurchaseOrderForm : Form
                 try
                 {
                     var count = await LoadRecentOrdersCoreAsync();
-                    SetStatus($"Submission was not confirmed. Refreshed {count} recent orders; review the list before retrying.");
+                    SetStatus($"Submission was not confirmed. Refreshed {count} recent orders; retry the unchanged form to confirm the same submission.");
                 }
                 catch (Exception refreshException) when (refreshException is HttpRequestException or TimeoutException or System.Text.Json.JsonException or InvalidOperationException)
                 {
@@ -283,7 +297,7 @@ public sealed class PurchaseOrderForm : Form
 
                 MessageBox.Show(
                     this,
-                    $"The purchase order could not be confirmed: {ex.Message}{Environment.NewLine}{Environment.NewLine}The server may still have created it. Review the recent-orders list before retrying.{refreshFailure}",
+                    $"The purchase order could not be confirmed: {ex.Message}{Environment.NewLine}{Environment.NewLine}The server may still have created it. Retry without changing the form to confirm the same submission. Editing or clearing the form starts a new submission.{refreshFailure}",
                     "Submission not confirmed",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
@@ -378,6 +392,8 @@ public sealed class PurchaseOrderForm : Form
 
     private void ResetForm(bool keepStatus = false)
     {
+        _submissionId = Guid.Empty;
+        _submissionPayload = null;
         _linesGrid.Rows.Clear();
         _notesBox.Clear();
         RecalculateTotals();

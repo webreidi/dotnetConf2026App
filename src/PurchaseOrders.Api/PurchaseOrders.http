@@ -1,4 +1,18 @@
 @baseUrl = http://localhost:5065
 
+### Create one logical submission; reuse this key and body to replay it.
+# Choose a NEW UUID for each intentional new order, even with identical contents.
+POST {{baseUrl}}/api/purchase-orders
+Content-Type: application/json
+Idempotency-Key: 2bfb48b6-6b91-4cbb-81de-f75929643f3e
+
+{
+  "supplierCode": "ACME",
+  "notes": "Draft for review",
+  "lines": [
+    { "sku": "BOLT-10", "description": "Hex bolt", "quantity": 10, "unitPrice": 0.35 }
+  ]
+}
+
 ### All duplicate purchase orders, including their full saved details
 GET {{baseUrl}}/api/purchase-orders/duplicates
