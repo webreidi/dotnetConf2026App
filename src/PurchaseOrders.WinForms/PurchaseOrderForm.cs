@@ -191,11 +191,11 @@ public sealed class PurchaseOrderForm : Form
         using var dialog = new SaveFileDialog
         {
             Title = "Save duplicate purchase orders report",
-            Filter = "Text document (*.txt)|*.txt",
-            DefaultExt = "txt",
+            Filter = "Markdown document (*.md)|*.md",
+            DefaultExt = "md",
             AddExtension = true,
             OverwritePrompt = true,
-            FileName = "duplicate-purchase-orders.txt",
+            FileName = "duplicate-purchase-orders.md",
         };
         if (dialog.ShowDialog(this) != DialogResult.OK)
         {

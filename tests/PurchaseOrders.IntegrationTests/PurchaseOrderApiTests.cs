@@ -133,9 +133,13 @@ public class PurchaseOrderApiTests(PurchaseOrdersAppFixture fixture)
         Assert.DoesNotContain(recent, order => savedOrders.Any(saved => saved.Id == order.Id));
 
         var duplicates = await client.ListDuplicatePurchaseOrdersAsync();
+        var duplicateGroups = await client.ListDuplicatePurchaseOrderGroupsAsync();
         var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(client);
 
         Assert.Equal(3, duplicates.Count(order => order.Notes == notes));
+        var matchingGroup = Assert.Single(duplicateGroups);
+        Assert.Equal(3, matchingGroup.Orders.Count);
+        Assert.All(savedOrders, order => Assert.Contains(matchingGroup.Orders, member => member.Id == order.Id));
         Assert.DoesNotContain(duplicates, order => order.Id == unique.Id);
         Assert.DoesNotContain(unique.Id.ToString(), report);
         foreach (var order in savedOrders)

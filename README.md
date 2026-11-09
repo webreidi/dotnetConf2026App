@@ -41,7 +41,21 @@ The API exports ASP.NET Core, HTTP client, and .NET runtime telemetry through As
 | GET | `/api/suppliers` | Active suppliers |
 | GET | `/api/purchase-orders?supplierCode=&take=` | Recent draft orders |
 | GET | `/api/purchase-orders/{id}` | One order with lines |
+| GET | `/api/purchase-orders/duplicates` | Flat list of all duplicate purchase orders |
+| GET | `/api/purchase-orders/duplicates/groups` | Duplicate purchase orders grouped by matching content |
 | POST | `/api/purchase-orders` | Create a draft order |
+
+### Duplicate records report
+
+The desktop **Generate Duplicate Records Report** button saves a Markdown (`.md`)
+file. It contains a Markdown heading and explanation followed by fenced JSON with
+each existing duplicate group, a `duplicateRecordCount`, and every complete
+purchase-order record and line. Each record includes its `duplicateId` and
+`canonicalId`. The canonical record is selected by earliest creation time, with
+UUID as the tie-breaker; this is for review only and does not prove which record
+was original. Matching continues to use the existing duplicate detector. The
+grouped endpoint supplies group membership, while the original flat
+`/api/purchase-orders/duplicates` endpoint remains available unchanged.
 
 ### Submission identity and replay
 

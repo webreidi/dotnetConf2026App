@@ -1,10 +1,13 @@
 using System.Globalization;
+using System.Text.Json;
 using PurchaseOrders.Contracts;
 
 namespace PurchaseOrders.Client;
 
 public static class PurchaseOrderReportGenerator
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+
     public static async Task<string> GenerateDuplicatesAsync(
         PurchaseOrdersApiClient client,
         CancellationToken cancellationToken = default)
@@ -12,21 +15,43 @@ public static class PurchaseOrderReportGenerator
         ArgumentNullException.ThrowIfNull(client);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var orders = await client.ListDuplicatePurchaseOrdersAsync(cancellationToken);
+        var groups = await client.ListDuplicatePurchaseOrderGroupsAsync(cancellationToken);
+        var report = new
+        {
+            DuplicateRecordCount = groups.Sum(group => group.Orders.Count),
+            Groups = groups.Select(group =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var canonicalId = group.Orders
+                    .OrderBy(order => order.CreatedAt)
+                    .ThenBy(order => order.Id)
+                    .First()
+                    .Id;
+                return new
+                {
+                    CanonicalId = canonicalId,
+                    Records = group.Orders.Select(order => new
+                    {
+                        DuplicateId = order.Id,
+                        CanonicalId = canonicalId,
+                        Order = order,
+                    }).ToArray(),
+                };
+            }).ToArray(),
+        };
+
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        writer.WriteLine("Duplicate purchase orders");
-        writer.WriteLine("Matching excludes PO ID, generated order number, and creation timestamp.");
-        writer.WriteLine("Duplicate records: {0}", orders.Count);
+        writer.WriteLine("# Duplicate purchase orders");
         writer.WriteLine();
-        if (orders.Count == 0)
-        {
+        writer.WriteLine("Duplicate matching uses the existing API rules and excludes PO identity, generated order number, and creation timestamp.");
+        writer.WriteLine("The canonical record is chosen by earliest creation time, with UUID as the tie-breaker. This choice is for review only, not proof of the original.");
+        writer.WriteLine("Duplicate records: {0}", report.DuplicateRecordCount);
+        if (report.DuplicateRecordCount == 0)
             writer.WriteLine("No duplicate purchase orders found.");
-        }
-        foreach (var order in orders)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            WriteOrder(writer, order);
-        }
+        writer.WriteLine();
+        writer.WriteLine("```json");
+        writer.WriteLine(JsonSerializer.Serialize(report, JsonOptions));
+        writer.WriteLine("```");
         return writer.ToString();
     }
 

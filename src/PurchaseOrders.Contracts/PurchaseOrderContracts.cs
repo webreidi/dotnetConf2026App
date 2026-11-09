@@ -28,6 +28,8 @@ public sealed record PurchaseOrderDto(
     DateTimeOffset CreatedAt,
     IReadOnlyList<PurchaseOrderLineDto> Lines);
 
+public sealed record PurchaseOrderDuplicateGroupDto(IReadOnlyList<PurchaseOrderDto> Orders);
+
 public sealed record PurchaseOrderSummaryDto(
     Guid Id,
     string OrderNumber,

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using PurchaseOrders.Client;
 using PurchaseOrders.Contracts;
 
@@ -11,24 +12,56 @@ public class PurchaseOrderReportGeneratorTests
     [Fact]
     public async Task GenerateDuplicatesAsync_exports_all_returned_duplicates_with_full_details()
     {
-        var first = SampleOrder();
-        var second = first with { Id = Guid.NewGuid(), OrderNumber = "PO-COPY", CreatedAt = first.CreatedAt.AddDays(1) };
+        var first = SampleOrder() with
+        {
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+        };
+        var second = first with
+        {
+            Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+            OrderNumber = "PO-COPY",
+        };
         var handler = new OrderHandler(first, second);
 
         var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(CreateClient(handler));
 
+        Assert.Contains("# Duplicate purchase orders", report);
+        Assert.Contains("for review only, not proof of the original", report);
         Assert.Contains("Duplicate records: 2", report);
-        foreach (var order in new[] { first, second })
+        using var json = ReadReportJson(report);
+        var root = json.RootElement;
+        Assert.Equal(2, root.GetProperty("duplicateRecordCount").GetInt32());
+        var group = Assert.Single(root.GetProperty("groups").EnumerateArray());
+        var canonicalId = second.Id;
+        Assert.Equal(canonicalId, group.GetProperty("canonicalId").GetGuid());
+        var records = group.GetProperty("records").EnumerateArray().ToArray();
+        Assert.Equal(2, records.Length);
+        foreach (var (record, expectedOrder) in records.Zip(new[] { first, second }))
         {
-            Assert.Contains($"Order ID: {order.Id:D}", report);
-            Assert.Contains($"Purchase order: {order.OrderNumber}", report);
-            Assert.Contains($"Created at: {order.CreatedAt:O}", report);
+            Assert.Equal(expectedOrder.Id, record.GetProperty("duplicateId").GetGuid());
+            Assert.Equal(canonicalId, record.GetProperty("canonicalId").GetGuid());
+            var order = record.GetProperty("order");
+            Assert.Equal(expectedOrder.Id, order.GetProperty("id").GetGuid());
+            Assert.Equal(expectedOrder.OrderNumber, order.GetProperty("orderNumber").GetString());
+            Assert.Equal(expectedOrder.SupplierCode, order.GetProperty("supplierCode").GetString());
+            Assert.Equal(expectedOrder.SupplierName, order.GetProperty("supplierName").GetString());
+            Assert.Equal(expectedOrder.Status, order.GetProperty("status").GetString());
+            Assert.Equal(expectedOrder.Notes, order.GetProperty("notes").GetString());
+            Assert.Equal(expectedOrder.Total, order.GetProperty("total").GetDecimal());
+            Assert.Equal(expectedOrder.CreatedAt, order.GetProperty("createdAt").GetDateTimeOffset());
+            var lines = order.GetProperty("lines").EnumerateArray().ToArray();
+            Assert.Equal(expectedOrder.Lines.Count, lines.Length);
+            foreach (var (line, expectedLine) in lines.Zip(expectedOrder.Lines))
+            {
+                Assert.Equal(expectedLine.LineNumber, line.GetProperty("lineNumber").GetInt32());
+                Assert.Equal(expectedLine.Sku, line.GetProperty("sku").GetString());
+                Assert.Equal(expectedLine.Description, line.GetProperty("description").GetString());
+                Assert.Equal(expectedLine.Quantity, line.GetProperty("quantity").GetInt32());
+                Assert.Equal(expectedLine.UnitPrice, line.GetProperty("unitPrice").GetDecimal());
+                Assert.Equal(expectedLine.LineTotal, line.GetProperty("lineTotal").GetDecimal());
+            }
         }
-        Assert.Equal(2, report.Split("Line number: 2").Length - 1);
-        Assert.Contains(first.SupplierName, report);
-        Assert.Contains(first.Notes!, report);
-        Assert.Contains("NUT-20", report);
-        Assert.Equal(["/api/purchase-orders/duplicates"], handler.Paths);
+        Assert.Equal(["/api/purchase-orders/duplicates/groups"], handler.Paths);
     }
 
     [Fact]
@@ -38,7 +71,8 @@ public class PurchaseOrderReportGeneratorTests
 
         Assert.Contains("Duplicate records: 0", report);
         Assert.Contains("No duplicate purchase orders found.", report);
-        Assert.DoesNotContain("Purchase order:", report);
+        using var json = ReadReportJson(report);
+        Assert.Empty(json.RootElement.GetProperty("groups").EnumerateArray());
     }
 
     [Fact]
@@ -184,6 +218,14 @@ public class PurchaseOrderReportGeneratorTests
             MaxAttempts = 1,
         });
 
+    private static JsonDocument ReadReportJson(string report)
+    {
+        var start = report.IndexOf("```json", StringComparison.Ordinal);
+        var end = report.IndexOf("```", start + "```json".Length, StringComparison.Ordinal);
+        Assert.True(start >= 0 && end > start, "The report must contain a fenced JSON document.");
+        return JsonDocument.Parse(report[(start + "```json".Length)..end].Trim());
+    }
+
     private sealed class OrderHandler(params PurchaseOrderDto[] orders) : HttpMessageHandler
     {
         public List<string> Paths { get; } = [];
@@ -193,9 +235,10 @@ public class PurchaseOrderReportGeneratorTests
             Assert.Equal(HttpMethod.Get, request.Method);
             var path = request.RequestUri!.AbsolutePath;
             Paths.Add(path);
-            if (path == "/api/purchase-orders/duplicates")
+            if (path == "/api/purchase-orders/duplicates/groups")
             {
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(orders) });
+                var groups = orders.Length > 1 ? new[] { new PurchaseOrderDuplicateGroupDto(orders) } : [];
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(groups) });
             }
             var order = orders.SingleOrDefault(order => path == $"/api/purchase-orders/{order.Id:D}");
             return Task.FromResult(order is null
