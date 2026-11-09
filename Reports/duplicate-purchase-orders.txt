@@ -1,0 +1,361 @@
+Duplicate purchase orders
+Matching excludes PO ID, generated order number, and creation timestamp.
+Duplicate records: 17
+
+Purchase order: PO-20261021-09706C0C548CF1A6
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: fa1e1ef1-5e3f-43b9-9c97-60a3b9183232
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 10.00
+Created at: 2026-10-21T15:08:02.5558910+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: Timeout reproduction
+Quantity: 1
+Unit price: 10.00
+Line total: 10.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-28D754169D85A552
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 5f4b3a83-5004-438d-ba69-3e4f4a9212d9
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 10.00
+Created at: 2026-10-21T15:08:04.7396500+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: Timeout reproduction
+Quantity: 1
+Unit price: 10.00
+Line total: 10.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-5001207F9E1FE13E
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 8f2d27e7-9e1d-4eb2-acce-2da4695350fa
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 10.00
+Created at: 2026-10-21T15:08:07.2615010+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: Timeout reproduction
+Quantity: 1
+Unit price: 10.00
+Line total: 10.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-488B444831CEF571
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 94515c9e-81f7-45e1-9a0d-9a430ed10502
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 10.00
+Created at: 2026-10-21T15:08:20.1060090+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: Timeout reproduction
+Quantity: 1
+Unit price: 10.00
+Line total: 10.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-2B91D6A7980F9B57
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 38a69e90-3af7-4c3c-aec1-979b9eebfa4a
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 10.00
+Created at: 2026-10-21T15:08:22.3658170+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: Timeout reproduction
+Quantity: 1
+Unit price: 10.00
+Line total: 10.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-26D3A22B8A6E0467
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 2f542dda-4f5a-4c0b-ab8d-b97e5d43ad32
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 10.00
+Created at: 2026-10-21T15:08:24.8793020+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: Timeout reproduction
+Quantity: 1
+Unit price: 10.00
+Line total: 10.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-24F2A59AF1E8937E
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: ab797bb8-cf52-4511-aef4-8100af42b3ec
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 10.00
+Created at: 2026-10-21T15:08:32.3754390+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: Timeout reproduction
+Quantity: 1
+Unit price: 10.00
+Line total: 10.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-D732171C7306802D
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 455a8170-5d82-4418-8631-1808cc58d5f5
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 10.00
+Created at: 2026-10-21T15:08:34.6427670+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: Timeout reproduction
+Quantity: 1
+Unit price: 10.00
+Line total: 10.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-699AC4EE7938044A
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 2cc65c97-f255-4106-9048-ea0f4efb7e1e
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 10.00
+Created at: 2026-10-21T15:08:37.1687360+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: Timeout reproduction
+Quantity: 1
+Unit price: 10.00
+Line total: 10.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-DC01E8566950B7FB
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 902b135e-d5ed-4cd5-91f7-925987fb54f3
+Supplier code: NWIND
+Supplier name: Northwind Traders
+Status: Draft
+Notes: 
+Total: 33.00
+Created at: 2026-10-21T15:42:06.7336180+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: testing
+Quantity: 3
+Unit price: 11.00
+Line total: 33.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-D1769E582AA0045F
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 80c5a7a8-be78-4018-91ec-6ccb251df56d
+Supplier code: NWIND
+Supplier name: Northwind Traders
+Status: Draft
+Notes: 
+Total: 33.00
+Created at: 2026-10-21T15:42:08.9803160+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: testing
+Quantity: 3
+Unit price: 11.00
+Line total: 33.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-E2B5B009B088B354
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 1916d93b-d1b6-4e30-8114-31cb35d302d4
+Supplier code: CONTOSO
+Supplier name: Contoso Components
+Status: Draft
+Notes: 
+Total: 558.57
+Created at: 2026-10-21T15:51:46.6077540+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: test bug
+Quantity: 43
+Unit price: 12.99
+Line total: 558.57
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-732B88466C9ECE73
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: b4af34bc-0acc-46f0-a907-beb475ee78eb
+Supplier code: CONTOSO
+Supplier name: Contoso Components
+Status: Draft
+Notes: 
+Total: 558.57
+Created at: 2026-10-21T15:51:48.8169140+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: test bug
+Quantity: 43
+Unit price: 12.99
+Line total: 558.57
+
+------------------------------------------------------------
+
+Purchase order: PO-20261021-D19E53B4CF79D720
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 12accebc-8686-4bba-9e6a-ef295335d35b
+Supplier code: CONTOSO
+Supplier name: Contoso Components
+Status: Draft
+Notes: 
+Total: 558.57
+Created at: 2026-10-21T15:51:51.3197790+00:00
+
+Line items:
+Line number: 1
+SKU: BUG-TEST
+Description: test bug
+Quantity: 43
+Unit price: 12.99
+Line total: 558.57
+
+------------------------------------------------------------
+
+Purchase order: PO-20261105-198BA08388CC10B0
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 8f6e55a5-1215-43c3-ac1e-2e1359d251a0
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 56.00
+Created at: 2026-11-05T20:49:36.1523120+00:00
+
+Line items:
+Line number: 1
+SKU: TEST
+Description: Testing 1,2,3
+Quantity: 8
+Unit price: 7.00
+Line total: 56.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261105-63794DD4031C5670
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 2ccd11a8-564a-4eea-9c34-36d2539e2ff0
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 56.00
+Created at: 2026-11-05T20:49:38.3579080+00:00
+
+Line items:
+Line number: 1
+SKU: TEST
+Description: Testing 1,2,3
+Quantity: 8
+Unit price: 7.00
+Line total: 56.00
+
+------------------------------------------------------------
+
+Purchase order: PO-20261105-8696083D6ACE6733
+Saved draft purchase order for review only. This draft has not been sent to suppliers.
+
+Order ID: 386cb77d-fad4-4c8d-8bd8-eb543a3b73eb
+Supplier code: ACME
+Supplier name: Acme Industrial Supply
+Status: Draft
+Notes: 
+Total: 56.00
+Created at: 2026-11-05T20:49:40.8668830+00:00
+
+Line items:
+Line number: 1
+SKU: TEST
+Description: Testing 1,2,3
+Quantity: 8
+Unit price: 7.00
+Line total: 56.00
+
+------------------------------------------------------------
+

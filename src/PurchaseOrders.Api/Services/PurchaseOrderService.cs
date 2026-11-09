@@ -47,6 +47,20 @@ public sealed class PurchaseOrderService(
             .ToList();
     }
 
+    public async Task<IReadOnlyList<PurchaseOrderDto>> ListDuplicatesAsync(CancellationToken cancellationToken)
+    {
+        var orders = await db.PurchaseOrders
+            .AsNoTracking()
+            .Include(o => o.Lines)
+            .Include(o => o.Supplier)
+            .OrderBy(o => o.CreatedAt)
+            .ThenBy(o => o.Id)
+            .AsSplitQuery()
+            .ToListAsync(cancellationToken);
+
+        return PurchaseOrderDuplicateDetector.FindDuplicates(orders.Select(o => o.ToDto()));
+    }
+
     public async Task<PurchaseOrderDto?> GetAsync(Guid id, CancellationToken cancellationToken)
     {
         var order = await db.PurchaseOrders

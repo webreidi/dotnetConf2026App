@@ -1,0 +1,4 @@
+@baseUrl = http://localhost:5065
+
+### All duplicate purchase orders, including their full saved details
+GET {{baseUrl}}/api/purchase-orders/duplicates

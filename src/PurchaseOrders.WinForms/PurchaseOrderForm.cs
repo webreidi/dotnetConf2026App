@@ -16,6 +16,7 @@ public sealed class PurchaseOrderForm : Form
     private readonly Button _createButton = new() { Text = "Create draft PO", AutoSize = true };
     private readonly Button _clearButton = new() { Text = "Clear", AutoSize = true };
     private readonly Button _refreshButton = new() { Text = "Refresh", AutoSize = true };
+    private readonly Button _generateReportButton = new() { Text = "Generate Duplicate Records Report", AutoSize = true, Enabled = false };
     private readonly DataGridView _recentGrid = new()
     {
         Dock = DockStyle.Fill,
@@ -24,6 +25,7 @@ public sealed class PurchaseOrderForm : Form
         AllowUserToDeleteRows = false,
         AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
         SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+        MultiSelect = true,
     };
     private readonly ToolStripStatusLabel _statusLabel = new() { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
 
@@ -44,6 +46,7 @@ public sealed class PurchaseOrderForm : Form
         _createButton.Click += async (_, _) => await CreateDraftAsync();
         _clearButton.Click += (_, _) => ResetForm();
         _refreshButton.Click += async (_, _) => await RefreshAsync();
+        _generateReportButton.Click += async (_, _) => await GenerateReportAsync();
         Load += async (_, _) => await InitializeAsync();
     }
 
@@ -73,6 +76,13 @@ public sealed class PurchaseOrderForm : Form
         var recentGroup = new GroupBox { Text = "Recent draft orders", Dock = DockStyle.Fill, Padding = new Padding(8) };
         var recentToolbar = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true };
         recentToolbar.Controls.Add(_refreshButton);
+        recentToolbar.Controls.Add(_generateReportButton);
+        recentToolbar.Controls.Add(new Label
+        {
+            Text = "Report checks all saved orders; no selection needed.",
+            AutoSize = true,
+            Margin = new Padding(8, 8, 0, 0),
+        });
         recentGroup.Controls.Add(_recentGrid);
         recentGroup.Controls.Add(recentToolbar);
 
@@ -171,6 +181,49 @@ public sealed class PurchaseOrderForm : Form
         }
         SetStatus($"Loaded {orders.Count} draft orders.");
         return orders.Count;
+    }
+
+    private async Task GenerateReportAsync()
+    {
+        using var dialog = new SaveFileDialog
+        {
+            Title = "Save duplicate purchase orders report",
+            Filter = "Text document (*.txt)|*.txt",
+            DefaultExt = "txt",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = "duplicate-purchase-orders.txt",
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            SetStatus("Report generation canceled.");
+            return;
+        }
+
+        await RunBusyAsync("Checking all saved orders for duplicates...", async () =>
+        {
+            try
+            {
+                var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(_client);
+                // Stage beside the destination so a failed write cannot truncate an existing document.
+                var temporaryPath = Path.Combine(Path.GetDirectoryName(dialog.FileName)!, $".{Guid.NewGuid():N}.tmp");
+                try
+                {
+                    await File.WriteAllTextAsync(temporaryPath, report);
+                    File.Move(temporaryPath, dialog.FileName, overwrite: true);
+                }
+                finally
+                {
+                    File.Delete(temporaryPath);
+                }
+                SetStatus($"Saved duplicate purchase orders report to {dialog.FileName}. Drafts have not been sent to suppliers.");
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException or System.Text.Json.JsonException)
+            {
+                SetStatus($"Report generation failed: {ex.Message}");
+                MessageBox.Show(this, ex.Message, "Report generation failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        });
     }
 
     private async Task CreateDraftAsync()
@@ -358,6 +411,8 @@ public sealed class PurchaseOrderForm : Form
     private void SetInputsEnabled(bool enabled)
     {
         _createButton.Enabled = _refreshButton.Enabled = _clearButton.Enabled = enabled;
+        _recentGrid.Enabled = enabled;
+        UpdateReportButton();
         _supplierCombo.Enabled = enabled;
         _notesBox.ReadOnly = !enabled;
         _linesGrid.ReadOnly = !enabled;
@@ -368,6 +423,9 @@ public sealed class PurchaseOrderForm : Form
             _linesGrid.Columns["LineTotal"]!.ReadOnly = true;
         }
     }
+
+    private void UpdateReportButton() =>
+        _generateReportButton.Enabled = _refreshButton.Enabled;
 
     private void SetStatus(string message) => _statusLabel.Text = message;
 }

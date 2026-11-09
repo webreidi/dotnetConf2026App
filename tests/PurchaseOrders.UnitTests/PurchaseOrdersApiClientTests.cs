@@ -38,6 +38,36 @@ public class PurchaseOrdersApiClientTests
     }
 
     [Fact]
+    public async Task GetPurchaseOrderAsync_returns_saved_details_using_get()
+    {
+        var expected = SampleOrder();
+        var handler = new StubHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = JsonContent.Create(expected),
+        }));
+
+        var order = await CreateClient(handler).GetPurchaseOrderAsync(expected.Id);
+
+        Assert.Equal(expected.Id, order.Id);
+        Assert.Equal(expected.SupplierName, order.SupplierName);
+        Assert.Equal(expected.Lines, order.Lines);
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Get, sent.Method);
+        Assert.Equal($"/api/purchase-orders/{expected.Id:D}", sent.RequestUri!.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task GetPurchaseOrderAsync_surfaces_missing_order_without_retrying()
+    {
+        var handler = new StubHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)));
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => CreateClient(handler).GetPurchaseOrderAsync(Guid.NewGuid()));
+
+        Assert.Equal(HttpStatusCode.NotFound, ex.StatusCode);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
     public async Task CreateDraftAsync_posts_request_and_returns_created_order()
     {
         var expected = SampleOrder();
