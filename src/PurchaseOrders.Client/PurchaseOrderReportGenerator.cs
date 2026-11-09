@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using PurchaseOrders.Contracts;
 
 namespace PurchaseOrders.Client;
@@ -12,21 +13,63 @@ public static class PurchaseOrderReportGenerator
         ArgumentNullException.ThrowIfNull(client);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var orders = await client.ListDuplicatePurchaseOrdersAsync(cancellationToken);
+        var groups = await client.ListDuplicatePurchaseOrderGroupsAsync(cancellationToken);
+        var reportGroups = groups
+            .Select(group =>
+            {
+                var orders = group.Orders
+                    .OrderBy(order => order.CreatedAt)
+                    .ThenBy(order => order.Id.ToString("D"), StringComparer.Ordinal)
+                    .ToArray();
+                if (orders.Length < 2)
+                {
+                    throw new InvalidOperationException("The duplicate-purchase-orders API returned a group with fewer than two orders.");
+                }
+
+                var canonical = orders[0];
+                return new
+                {
+                    CanonicalCreatedAt = canonical.CreatedAt,
+                    CanonicalId = canonical.Id,
+                    Report = new
+                    {
+                        canonicalId = canonical.Id,
+                        duplicatePairs = orders.Skip(1).Select(order => new
+                        {
+                            duplicateId = order.Id,
+                            canonicalId = canonical.Id,
+                        }).ToArray(),
+                        orders = orders.Select(order => new
+                        {
+                            notice = "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+                            order,
+                        }).ToArray(),
+                    },
+                };
+            })
+            .OrderBy(group => group.CanonicalCreatedAt)
+            .ThenBy(group => group.CanonicalId.ToString("D"), StringComparer.Ordinal)
+            .Select(group => group.Report)
+            .ToArray();
+
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        writer.WriteLine("Duplicate purchase orders");
-        writer.WriteLine("Matching excludes PO ID, generated order number, and creation timestamp.");
-        writer.WriteLine("Duplicate records: {0}", orders.Count);
+        writer.WriteLine("# Duplicate purchase orders report");
         writer.WriteLine();
-        if (orders.Count == 0)
+        writer.WriteLine("Matches compare supplier code and name, status, notes, total, and every line item; PO ID, generated order number, and creation timestamp are excluded.");
+        writer.WriteLine("For review, the canonical record is the earliest-created order; ties are broken by ordinal UUID text. This choice is for review only, not proof of which record was original.");
+        writer.WriteLine("These saved drafts have not been sent to suppliers.");
+        if (reportGroups.Length == 0)
         {
             writer.WriteLine("No duplicate purchase orders found.");
         }
-        foreach (var order in orders)
+        writer.WriteLine();
+        writer.WriteLine("```json");
+        writer.WriteLine(JsonSerializer.Serialize(new
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            WriteOrder(writer, order);
-        }
+            duplicateRecords = groups.Sum(group => group.Orders.Count),
+            duplicateGroups = reportGroups,
+        }, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }));
+        writer.WriteLine("```");
         return writer.ToString();
     }
 

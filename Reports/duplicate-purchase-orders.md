@@ -1,0 +1,1021 @@
+# Duplicate purchase orders report
+
+Matches compare supplier code and name, status, notes, total, and every line item; PO ID, generated order number, and creation timestamp are excluded.
+For review, the canonical record is the earliest-created order; ties are broken by ordinal UUID text. This choice is for review only, not proof of which record was original.
+These saved drafts have not been sent to suppliers.
+
+```json
+{
+  "duplicateRecords": 36,
+  "duplicateGroups": [
+    {
+      "canonicalId": "7137d1b8-f313-44fe-a4cf-b6de649c1656",
+      "duplicatePairs": [
+        {
+          "duplicateId": "10713373-b94f-4a1b-aa6f-2de09ab1f823",
+          "canonicalId": "7137d1b8-f313-44fe-a4cf-b6de649c1656"
+        },
+        {
+          "duplicateId": "6b7d62d0-6b22-49b7-9e92-b6c4a8e10585",
+          "canonicalId": "7137d1b8-f313-44fe-a4cf-b6de649c1656"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "7137d1b8-f313-44fe-a4cf-b6de649c1656",
+            "orderNumber": "PO-20261104-90DCE1E6F417147B",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 45.00,
+            "createdAt": "2026-11-04T18:04:18.339652+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "TEST",
+                "description": "12345",
+                "quantity": 3,
+                "unitPrice": 15.00,
+                "lineTotal": 45.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "10713373-b94f-4a1b-aa6f-2de09ab1f823",
+            "orderNumber": "PO-20261104-522CBE4C1B6559BA",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 45.00,
+            "createdAt": "2026-11-04T18:05:03.80232+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "TEST",
+                "description": "12345",
+                "quantity": 3,
+                "unitPrice": 15.00,
+                "lineTotal": 45.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "6b7d62d0-6b22-49b7-9e92-b6c4a8e10585",
+            "orderNumber": "PO-20261104-31F7B9F7E19F3C24",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 45.00,
+            "createdAt": "2026-11-04T18:05:06.364857+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "TEST",
+                "description": "12345",
+                "quantity": 3,
+                "unitPrice": 15.00,
+                "lineTotal": 45.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "627ac469-94b7-4d3f-a5dd-7485f1194eb5",
+      "duplicatePairs": [
+        {
+          "duplicateId": "4ec6f51d-4d40-4838-be86-018005850791",
+          "canonicalId": "627ac469-94b7-4d3f-a5dd-7485f1194eb5"
+        },
+        {
+          "duplicateId": "9ba42184-cd88-41d9-b4fb-d54e673a3e46",
+          "canonicalId": "627ac469-94b7-4d3f-a5dd-7485f1194eb5"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "627ac469-94b7-4d3f-a5dd-7485f1194eb5",
+            "orderNumber": "PO-20261104-9888DD3742558ECF",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 115.00,
+            "createdAt": "2026-11-04T18:24:07.247606+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABSD",
+                "description": "Testing",
+                "quantity": 5,
+                "unitPrice": 23.00,
+                "lineTotal": 115.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "4ec6f51d-4d40-4838-be86-018005850791",
+            "orderNumber": "PO-20261104-62A73CDE737EF53A",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 115.00,
+            "createdAt": "2026-11-04T18:24:09.477609+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABSD",
+                "description": "Testing",
+                "quantity": 5,
+                "unitPrice": 23.00,
+                "lineTotal": 115.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "9ba42184-cd88-41d9-b4fb-d54e673a3e46",
+            "orderNumber": "PO-20261104-EE0A4E4D5F975C83",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 115.00,
+            "createdAt": "2026-11-04T18:24:12.014176+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABSD",
+                "description": "Testing",
+                "quantity": 5,
+                "unitPrice": 23.00,
+                "lineTotal": 115.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "f81f538f-8393-4160-8025-0e1be0bd9fac",
+      "duplicatePairs": [
+        {
+          "duplicateId": "8bc02963-6c7d-4962-bfb8-893b7fe734b9",
+          "canonicalId": "f81f538f-8393-4160-8025-0e1be0bd9fac"
+        },
+        {
+          "duplicateId": "122cc439-9384-432d-a4ab-0d40c9043073",
+          "canonicalId": "f81f538f-8393-4160-8025-0e1be0bd9fac"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "f81f538f-8393-4160-8025-0e1be0bd9fac",
+            "orderNumber": "PO-20261105-D249766EAD7B46F1",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 57.00,
+            "createdAt": "2026-11-05T21:02:46.116954+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "TEST",
+                "description": "test",
+                "quantity": 3,
+                "unitPrice": 19.00,
+                "lineTotal": 57.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "8bc02963-6c7d-4962-bfb8-893b7fe734b9",
+            "orderNumber": "PO-20261105-6A029DA2F7E41626",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 57.00,
+            "createdAt": "2026-11-05T21:02:48.33345+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "TEST",
+                "description": "test",
+                "quantity": 3,
+                "unitPrice": 19.00,
+                "lineTotal": 57.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "122cc439-9384-432d-a4ab-0d40c9043073",
+            "orderNumber": "PO-20261105-73776D0FEF659111",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 57.00,
+            "createdAt": "2026-11-05T21:02:50.878135+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "TEST",
+                "description": "test",
+                "quantity": 3,
+                "unitPrice": 19.00,
+                "lineTotal": 57.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "215f1b1c-23f8-459d-b339-c96266713824",
+      "duplicatePairs": [
+        {
+          "duplicateId": "af4b8caa-b6ab-4b7b-b477-83c7cc7d79a9",
+          "canonicalId": "215f1b1c-23f8-459d-b339-c96266713824"
+        },
+        {
+          "duplicateId": "f3d0cd16-ec91-47f2-8c2b-dce33f5ed19d",
+          "canonicalId": "215f1b1c-23f8-459d-b339-c96266713824"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "215f1b1c-23f8-459d-b339-c96266713824",
+            "orderNumber": "PO-20261106-EA0EC0B5B7E322A7",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 76.00,
+            "createdAt": "2026-11-06T19:13:53.214427+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD123",
+                "description": "That thing",
+                "quantity": 4,
+                "unitPrice": 19.00,
+                "lineTotal": 76.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "af4b8caa-b6ab-4b7b-b477-83c7cc7d79a9",
+            "orderNumber": "PO-20261106-7D102872DCD3A6E4",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 76.00,
+            "createdAt": "2026-11-06T19:13:55.459793+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD123",
+                "description": "That thing",
+                "quantity": 4,
+                "unitPrice": 19.00,
+                "lineTotal": 76.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "f3d0cd16-ec91-47f2-8c2b-dce33f5ed19d",
+            "orderNumber": "PO-20261106-E63A0252DACAD821",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 76.00,
+            "createdAt": "2026-11-06T19:13:58.022169+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD123",
+                "description": "That thing",
+                "quantity": 4,
+                "unitPrice": 19.00,
+                "lineTotal": 76.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "448348ec-5bf8-4dcb-a9d1-8bb63032c9fb",
+      "duplicatePairs": [
+        {
+          "duplicateId": "d3b0a573-80d5-4f99-aa0d-05cffc67dbf6",
+          "canonicalId": "448348ec-5bf8-4dcb-a9d1-8bb63032c9fb"
+        },
+        {
+          "duplicateId": "7c2bdbdd-6fa7-4b0d-857f-751f517300ec",
+          "canonicalId": "448348ec-5bf8-4dcb-a9d1-8bb63032c9fb"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "448348ec-5bf8-4dcb-a9d1-8bb63032c9fb",
+            "orderNumber": "PO-20261106-A999170E701EB85C",
+            "supplierCode": "NWIND",
+            "supplierName": "Northwind Traders",
+            "status": "Draft",
+            "notes": null,
+            "total": 74.00,
+            "createdAt": "2026-11-06T23:09:03.690174+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD",
+                "description": "Testing",
+                "quantity": 2,
+                "unitPrice": 37.00,
+                "lineTotal": 74.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "d3b0a573-80d5-4f99-aa0d-05cffc67dbf6",
+            "orderNumber": "PO-20261106-80A77BA64FAC32B8",
+            "supplierCode": "NWIND",
+            "supplierName": "Northwind Traders",
+            "status": "Draft",
+            "notes": null,
+            "total": 74.00,
+            "createdAt": "2026-11-06T23:09:05.947814+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD",
+                "description": "Testing",
+                "quantity": 2,
+                "unitPrice": 37.00,
+                "lineTotal": 74.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "7c2bdbdd-6fa7-4b0d-857f-751f517300ec",
+            "orderNumber": "PO-20261106-DF60562DD339F2F5",
+            "supplierCode": "NWIND",
+            "supplierName": "Northwind Traders",
+            "status": "Draft",
+            "notes": null,
+            "total": 74.00,
+            "createdAt": "2026-11-06T23:09:08.481448+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD",
+                "description": "Testing",
+                "quantity": 2,
+                "unitPrice": 37.00,
+                "lineTotal": 74.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "1ddeffcf-76b1-4226-8292-b43a1882471d",
+      "duplicatePairs": [
+        {
+          "duplicateId": "c2cff27c-733a-4496-8a76-7e40e76c8693",
+          "canonicalId": "1ddeffcf-76b1-4226-8292-b43a1882471d"
+        },
+        {
+          "duplicateId": "b99e78a4-314b-46e8-8e5d-8176bf5a3861",
+          "canonicalId": "1ddeffcf-76b1-4226-8292-b43a1882471d"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "1ddeffcf-76b1-4226-8292-b43a1882471d",
+            "orderNumber": "PO-20261106-5A0087522EACF7B1",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 576.00,
+            "createdAt": "2026-11-06T23:13:24.331907+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "WXYZ",
+                "description": "Testing2",
+                "quantity": 8,
+                "unitPrice": 72.00,
+                "lineTotal": 576.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "c2cff27c-733a-4496-8a76-7e40e76c8693",
+            "orderNumber": "PO-20261106-BFFBEC8994359716",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 576.00,
+            "createdAt": "2026-11-06T23:13:26.54595+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "WXYZ",
+                "description": "Testing2",
+                "quantity": 8,
+                "unitPrice": 72.00,
+                "lineTotal": 576.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "b99e78a4-314b-46e8-8e5d-8176bf5a3861",
+            "orderNumber": "PO-20261106-D8A4435C2FF771D5",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 576.00,
+            "createdAt": "2026-11-06T23:13:29.08687+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "WXYZ",
+                "description": "Testing2",
+                "quantity": 8,
+                "unitPrice": 72.00,
+                "lineTotal": 576.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "a60267fb-1691-4042-9fd9-f60bd6a75fc2",
+      "duplicatePairs": [
+        {
+          "duplicateId": "f76aacde-9349-4cea-9aa2-f0b6683f7015",
+          "canonicalId": "a60267fb-1691-4042-9fd9-f60bd6a75fc2"
+        },
+        {
+          "duplicateId": "affb71d4-0a7a-4bfc-978e-a9c25eb5fa0a",
+          "canonicalId": "a60267fb-1691-4042-9fd9-f60bd6a75fc2"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "a60267fb-1691-4042-9fd9-f60bd6a75fc2",
+            "orderNumber": "PO-20261107-2EF6BAD2B38A341D",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 13.00,
+            "createdAt": "2026-11-07T00:22:03.949284+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "1234",
+                "description": "Test",
+                "quantity": 1,
+                "unitPrice": 13.00,
+                "lineTotal": 13.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "f76aacde-9349-4cea-9aa2-f0b6683f7015",
+            "orderNumber": "PO-20261107-FE501B10DEB8D38B",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 13.00,
+            "createdAt": "2026-11-07T00:22:06.158626+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "1234",
+                "description": "Test",
+                "quantity": 1,
+                "unitPrice": 13.00,
+                "lineTotal": 13.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "affb71d4-0a7a-4bfc-978e-a9c25eb5fa0a",
+            "orderNumber": "PO-20261107-540479C1E8E00011",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 13.00,
+            "createdAt": "2026-11-07T00:22:08.673779+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "1234",
+                "description": "Test",
+                "quantity": 1,
+                "unitPrice": 13.00,
+                "lineTotal": 13.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "0eca439d-d295-4fef-82f8-fcab51a00594",
+      "duplicatePairs": [
+        {
+          "duplicateId": "e0676e83-6992-41ff-a965-beaa271d5eb3",
+          "canonicalId": "0eca439d-d295-4fef-82f8-fcab51a00594"
+        },
+        {
+          "duplicateId": "62ae5f78-d73b-4935-a66d-8cf3713d62fd",
+          "canonicalId": "0eca439d-d295-4fef-82f8-fcab51a00594"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "0eca439d-d295-4fef-82f8-fcab51a00594",
+            "orderNumber": "PO-20261107-92EEAEFEDB19D0D0",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 117.00,
+            "createdAt": "2026-11-07T00:26:21.742446+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "5643",
+                "description": "Test",
+                "quantity": 9,
+                "unitPrice": 13.00,
+                "lineTotal": 117.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "e0676e83-6992-41ff-a965-beaa271d5eb3",
+            "orderNumber": "PO-20261107-E040D0B58210BA93",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 117.00,
+            "createdAt": "2026-11-07T00:26:24.004754+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "5643",
+                "description": "Test",
+                "quantity": 9,
+                "unitPrice": 13.00,
+                "lineTotal": 117.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "62ae5f78-d73b-4935-a66d-8cf3713d62fd",
+            "orderNumber": "PO-20261107-5FFC3CB44B159A51",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 117.00,
+            "createdAt": "2026-11-07T00:26:26.578574+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "5643",
+                "description": "Test",
+                "quantity": 9,
+                "unitPrice": 13.00,
+                "lineTotal": 117.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "af41f37f-522a-48d9-91d0-14666d9573f0",
+      "duplicatePairs": [
+        {
+          "duplicateId": "10b6b71f-995d-4481-bc3a-c17335233b9d",
+          "canonicalId": "af41f37f-522a-48d9-91d0-14666d9573f0"
+        },
+        {
+          "duplicateId": "49d9700b-acb4-47c6-93fd-6c1629c20cf4",
+          "canonicalId": "af41f37f-522a-48d9-91d0-14666d9573f0"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "af41f37f-522a-48d9-91d0-14666d9573f0",
+            "orderNumber": "PO-20261107-4938CF92CE3BC992",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 65.00,
+            "createdAt": "2026-11-07T00:31:05.477909+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "9876",
+                "description": "ABCDE",
+                "quantity": 5,
+                "unitPrice": 13.00,
+                "lineTotal": 65.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "10b6b71f-995d-4481-bc3a-c17335233b9d",
+            "orderNumber": "PO-20261107-5D164243A7A34A18",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 65.00,
+            "createdAt": "2026-11-07T00:31:07.705503+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "9876",
+                "description": "ABCDE",
+                "quantity": 5,
+                "unitPrice": 13.00,
+                "lineTotal": 65.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "49d9700b-acb4-47c6-93fd-6c1629c20cf4",
+            "orderNumber": "PO-20261107-433233F77BF15A38",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 65.00,
+            "createdAt": "2026-11-07T00:31:10.261699+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "9876",
+                "description": "ABCDE",
+                "quantity": 5,
+                "unitPrice": 13.00,
+                "lineTotal": 65.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "b2efa0ba-4417-44e2-ac6c-2f7357836769",
+      "duplicatePairs": [
+        {
+          "duplicateId": "939299d6-3a5a-4b18-af4f-2377c74f4724",
+          "canonicalId": "b2efa0ba-4417-44e2-ac6c-2f7357836769"
+        },
+        {
+          "duplicateId": "08c72d0b-2e3a-4d86-b32e-eb6533f8d265",
+          "canonicalId": "b2efa0ba-4417-44e2-ac6c-2f7357836769"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "b2efa0ba-4417-44e2-ac6c-2f7357836769",
+            "orderNumber": "PO-20261109-20394C07160804E6",
+            "supplierCode": "NWIND",
+            "supplierName": "Northwind Traders",
+            "status": "Draft",
+            "notes": null,
+            "total": 2397.00,
+            "createdAt": "2026-11-09T16:12:31.600807+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD",
+                "description": "Computers",
+                "quantity": 3,
+                "unitPrice": 799.00,
+                "lineTotal": 2397.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "939299d6-3a5a-4b18-af4f-2377c74f4724",
+            "orderNumber": "PO-20261109-7DB5895C8E0A7FF8",
+            "supplierCode": "NWIND",
+            "supplierName": "Northwind Traders",
+            "status": "Draft",
+            "notes": null,
+            "total": 2397.00,
+            "createdAt": "2026-11-09T16:12:33.827859+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD",
+                "description": "Computers",
+                "quantity": 3,
+                "unitPrice": 799.00,
+                "lineTotal": 2397.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "08c72d0b-2e3a-4d86-b32e-eb6533f8d265",
+            "orderNumber": "PO-20261109-96F4842F7370CCBA",
+            "supplierCode": "NWIND",
+            "supplierName": "Northwind Traders",
+            "status": "Draft",
+            "notes": null,
+            "total": 2397.00,
+            "createdAt": "2026-11-09T16:12:36.368265+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD",
+                "description": "Computers",
+                "quantity": 3,
+                "unitPrice": 799.00,
+                "lineTotal": 2397.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "d6962654-b917-4ceb-976f-a3c0c0f5bb84",
+      "duplicatePairs": [
+        {
+          "duplicateId": "5aeeebf0-5268-485b-897e-76b594443469",
+          "canonicalId": "d6962654-b917-4ceb-976f-a3c0c0f5bb84"
+        },
+        {
+          "duplicateId": "0309cb6d-4b37-4324-bd59-f9104e2c8f15",
+          "canonicalId": "d6962654-b917-4ceb-976f-a3c0c0f5bb84"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "d6962654-b917-4ceb-976f-a3c0c0f5bb84",
+            "orderNumber": "PO-20261109-64F3B04C50C6B959",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 3995.00,
+            "createdAt": "2026-11-09T16:13:15.591511+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD",
+                "description": "Computers",
+                "quantity": 5,
+                "unitPrice": 799.00,
+                "lineTotal": 3995.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "5aeeebf0-5268-485b-897e-76b594443469",
+            "orderNumber": "PO-20261109-54DB18EABEA9C112",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 3995.00,
+            "createdAt": "2026-11-09T16:13:17.942006+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD",
+                "description": "Computers",
+                "quantity": 5,
+                "unitPrice": 799.00,
+                "lineTotal": 3995.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "0309cb6d-4b37-4324-bd59-f9104e2c8f15",
+            "orderNumber": "PO-20261109-A71FAB1D83F15725",
+            "supplierCode": "CONTOSO",
+            "supplierName": "Contoso Components",
+            "status": "Draft",
+            "notes": null,
+            "total": 3995.00,
+            "createdAt": "2026-11-09T16:13:20.464819+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABCD",
+                "description": "Computers",
+                "quantity": 5,
+                "unitPrice": 799.00,
+                "lineTotal": 3995.00
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "canonicalId": "5f09db7e-362c-4974-a70b-c48946244902",
+      "duplicatePairs": [
+        {
+          "duplicateId": "0bc69d7c-730d-43f7-9993-591eb1f04e4c",
+          "canonicalId": "5f09db7e-362c-4974-a70b-c48946244902"
+        },
+        {
+          "duplicateId": "426fadde-1f39-4343-8580-0e90afe991d6",
+          "canonicalId": "5f09db7e-362c-4974-a70b-c48946244902"
+        }
+      ],
+      "orders": [
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "5f09db7e-362c-4974-a70b-c48946244902",
+            "orderNumber": "PO-20261109-61FC7018BA5DDE70",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 2793.00,
+            "createdAt": "2026-11-09T16:16:54.892057+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABSS",
+                "description": "Monitors",
+                "quantity": 399,
+                "unitPrice": 7.00,
+                "lineTotal": 2793.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "0bc69d7c-730d-43f7-9993-591eb1f04e4c",
+            "orderNumber": "PO-20261109-668B6F7CF40EE07C",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 2793.00,
+            "createdAt": "2026-11-09T16:16:57.119473+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABSS",
+                "description": "Monitors",
+                "quantity": 399,
+                "unitPrice": 7.00,
+                "lineTotal": 2793.00
+              }
+            ]
+          }
+        },
+        {
+          "notice": "Saved draft purchase order for review only. This draft has not been sent to suppliers.",
+          "order": {
+            "id": "426fadde-1f39-4343-8580-0e90afe991d6",
+            "orderNumber": "PO-20261109-200A40C6CAE669FA",
+            "supplierCode": "ACME",
+            "supplierName": "Acme Industrial Supply",
+            "status": "Draft",
+            "notes": null,
+            "total": 2793.00,
+            "createdAt": "2026-11-09T16:16:59.661123+00:00",
+            "lines": [
+              {
+                "lineNumber": 1,
+                "sku": "ABSS",
+                "description": "Monitors",
+                "quantity": 399,
+                "unitPrice": 7.00,
+                "lineTotal": 2793.00
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
+```

@@ -13,6 +13,10 @@ public sealed class PurchaseOrdersAppFixture : IAsyncLifetime
 
     public HttpClient CreateApiClient() => _app!.CreateHttpClient("api", "https");
 
+    public async Task<string> GetConnectionStringAsync(CancellationToken cancellationToken = default) =>
+        await _app!.GetConnectionStringAsync("purchasingdb", cancellationToken)
+        ?? throw new InvalidOperationException("The purchasing database connection string is unavailable.");
+
     public async Task InitializeAsync()
     {
         using var cts = new CancellationTokenSource(StartupTimeout);

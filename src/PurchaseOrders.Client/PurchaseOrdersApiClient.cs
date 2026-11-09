@@ -51,6 +51,13 @@ public sealed class PurchaseOrdersApiClient
             return await ReadAsync<IReadOnlyList<PurchaseOrderDto>>(response, ct);
         }, cancellationToken);
 
+    public Task<IReadOnlyList<DuplicatePurchaseOrderGroupDto>> ListDuplicatePurchaseOrderGroupsAsync(CancellationToken cancellationToken = default) =>
+        SendAsync(async ct =>
+        {
+            using var response = await _http.GetAsync("api/purchase-orders/duplicates/groups", ct);
+            return await ReadAsync<IReadOnlyList<DuplicatePurchaseOrderGroupDto>>(response, ct);
+        }, cancellationToken);
+
     public Task<PurchaseOrderDto> GetPurchaseOrderAsync(Guid id, CancellationToken cancellationToken = default) =>
         SendAsync(async ct =>
         {
@@ -58,13 +65,22 @@ public sealed class PurchaseOrdersApiClient
             return await ReadAsync<PurchaseOrderDto>(response, ct);
         }, cancellationToken);
 
-    public Task<PurchaseOrderDto> CreateDraftAsync(CreatePurchaseOrderRequest request, CancellationToken cancellationToken = default)
+    public Task<PurchaseOrderDto> CreateDraftAsync(
+        CreatePurchaseOrderRequest request, CancellationToken cancellationToken = default, Guid? submissionId = null)
     {
         ArgumentNullException.ThrowIfNull(request);
+        var identity = submissionId ?? Guid.NewGuid();
+        if (identity == Guid.Empty)
+        {
+            throw new ArgumentException("Submission identity must not be empty.", nameof(submissionId));
+        }
 
         return SendAsync(async ct =>
         {
-            using var response = await _http.PostAsJsonAsync("api/purchase-orders", request, JsonOptions, ct);
+            using var message = new HttpRequestMessage(HttpMethod.Post, "api/purchase-orders");
+            message.Headers.Add("Idempotency-Key", identity.ToString("D"));
+            message.Content = JsonContent.Create(request, options: JsonOptions);
+            using var response = await _http.SendAsync(message, ct);
             return await ReadAsync<PurchaseOrderDto>(response, ct);
         }, cancellationToken);
     }

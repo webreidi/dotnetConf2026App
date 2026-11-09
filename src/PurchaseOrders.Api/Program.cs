@@ -27,12 +27,11 @@ if (app.Environment.IsDevelopment())
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PurchasingDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    await PurchasingDatabaseInitializer.InitializeAsync(db);
 }
 
 app.MapPurchaseOrderEndpoints();
 app.MapDefaultEndpoints();
 
 app.Run();
-
 

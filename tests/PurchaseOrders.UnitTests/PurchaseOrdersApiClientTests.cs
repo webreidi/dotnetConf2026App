@@ -100,6 +100,18 @@ public class PurchaseOrdersApiClientTests
     }
 
     [Fact]
+    public async Task Conflicting_identity_is_not_retried()
+    {
+        var handler = new StubHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Conflict)));
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            CreateClient(handler).CreateDraftAsync(Request, submissionId: Guid.NewGuid()));
+
+        Assert.Equal(HttpStatusCode.Conflict, ex.StatusCode);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
     public async Task CreateDraftAsync_recovers_from_a_transient_timeout()
     {
         var expected = SampleOrder();
@@ -120,6 +132,30 @@ public class PurchaseOrdersApiClientTests
 
         Assert.Equal(expected.Id, order.Id);
         Assert.Equal([1], retries);
+        Assert.Equal(2, handler.Requests.Count);
+        var identity = handler.Requests[0].Headers.GetValues("Idempotency-Key").Single();
+        Assert.True(Guid.TryParse(identity, out var parsed) && parsed != Guid.Empty);
+        Assert.Equal(identity, handler.Requests[1].Headers.GetValues("Idempotency-Key").Single());
+    }
+
+    [Fact]
+    public async Task New_submissions_get_distinct_identities_and_explicit_replay_keeps_identity()
+    {
+        var handler = new StubHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = JsonContent.Create(SampleOrder()),
+        }));
+        var client = CreateClient(handler);
+        await client.CreateDraftAsync(Request);
+        await client.CreateDraftAsync(Request);
+        var identity = Guid.NewGuid();
+        await client.CreateDraftAsync(Request, submissionId: identity);
+        await client.CreateDraftAsync(Request, submissionId: identity);
+
+        var keys = handler.Requests.Select(r => r.Headers.GetValues("Idempotency-Key").Single()).ToArray();
+        Assert.NotEqual(keys[0], keys[1]);
+        Assert.Equal(identity.ToString("D"), keys[2]);
+        Assert.Equal(keys[2], keys[3]);
     }
 
     [Fact]

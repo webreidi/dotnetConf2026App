@@ -7,9 +7,20 @@ public sealed class PurchasingDbContext(DbContextOptions<PurchasingDbContext> op
 {
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
+    public DbSet<PurchaseOrderSubmission> PurchaseOrderSubmissions => Set<PurchaseOrderSubmission>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<PurchaseOrderSubmission>(submission =>
+        {
+            submission.ToTable("purchase_order_submissions");
+            submission.HasKey(s => s.Id).HasName("pk_purchase_order_submissions");
+            submission.Property(s => s.RequestPayload).IsRequired();
+            submission.HasIndex(s => s.PurchaseOrderId).IsUnique();
+            submission.HasOne<PurchaseOrder>().WithOne().HasForeignKey<PurchaseOrderSubmission>(s => s.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<Supplier>(supplier =>
         {
             supplier.ToTable("suppliers");

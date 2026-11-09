@@ -5,11 +5,16 @@ namespace PurchaseOrders.Api.Services;
 public static class PurchaseOrderDuplicateDetector
 {
     public static IReadOnlyList<PurchaseOrderDto> FindDuplicates(IEnumerable<PurchaseOrderDto> orders) =>
+        FindDuplicateGroups(orders)
+            .SelectMany(group => group.Orders)
+            .ToList();
+
+    public static IReadOnlyList<DuplicatePurchaseOrderGroupDto> FindDuplicateGroups(IEnumerable<PurchaseOrderDto> orders) =>
         orders
             .DistinctBy(order => order.Id)
             .GroupBy(order => order, new ContentComparer())
             .Where(group => group.Count() > 1)
-            .SelectMany(group => group)
+            .Select(group => new DuplicatePurchaseOrderGroupDto(group.ToList()))
             .ToList();
 
     private sealed class ContentComparer : IEqualityComparer<PurchaseOrderDto>

@@ -1,4 +1,31 @@
 @baseUrl = http://localhost:5065
+@submissionId = b350e2b9-7ab4-45e8-a49b-00d354e4a95c
+
+### Create or replay this logical submission (201 with the same order and Location)
+POST {{baseUrl}}/api/purchase-orders
+Content-Type: application/json
+Idempotency-Key: {{submissionId}}
+
+{
+  "supplierCode": "ACME",
+  "notes": "Replay example",
+  "lines": [
+    { "sku": "BOLT-10", "description": "Hex bolt", "quantity": 10, "unitPrice": 0.35 }
+  ]
+}
+
+### Conflicting reuse of the same identity (409); choose a new UUID for a new order
+POST {{baseUrl}}/api/purchase-orders
+Content-Type: application/json
+Idempotency-Key: {{submissionId}}
+
+{
+  "supplierCode": "ACME",
+  "notes": "Replay example",
+  "lines": [
+    { "sku": "BOLT-10", "description": "Hex bolt", "quantity": 11, "unitPrice": 0.35 }
+  ]
+}
 
 ### All duplicate purchase orders, including their full saved details
 GET {{baseUrl}}/api/purchase-orders/duplicates

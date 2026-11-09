@@ -3,6 +3,7 @@
     <Project Path="src/PurchaseOrders.Api/PurchaseOrders.Api.csproj" />
     <Project Path="src/PurchaseOrders.AppHost/PurchaseOrders.AppHost.csproj" />
     <Project Path="src/PurchaseOrders.Client/PurchaseOrders.Client.csproj" />
+    <Project Path="src/PurchaseOrders.Cleanup/PurchaseOrders.Cleanup.csproj" />
     <Project Path="src/PurchaseOrders.Contracts/PurchaseOrders.Contracts.csproj" />
     <Project Path="src/PurchaseOrders.ServiceDefaults/PurchaseOrders.ServiceDefaults.csproj" />
     <Project Path="src/PurchaseOrders.WinForms/PurchaseOrders.WinForms.csproj" />

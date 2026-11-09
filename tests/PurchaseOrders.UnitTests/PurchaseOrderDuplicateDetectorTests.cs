@@ -25,6 +25,22 @@ public class PurchaseOrderDuplicateDetectorTests
         Assert.Equal([first.Id, second.Id, third.Id, other.Id, otherCopy.Id], duplicates.Select(order => order.Id));
     }
 
+    [Fact]
+    public void Finds_duplicate_groups_with_the_existing_matching_rules()
+    {
+        var first = SampleOrder();
+        var second = first with { Id = Guid.NewGuid(), OrderNumber = "PO-2" };
+        var other = first with { Id = Guid.NewGuid(), Notes = "Other warehouse" };
+        var otherCopy = other with { Id = Guid.NewGuid(), OrderNumber = "PO-4" };
+        var unique = first with { Id = Guid.NewGuid(), Notes = "Unique" };
+
+        var groups = PurchaseOrderDuplicateDetector.FindDuplicateGroups([first, otherCopy, unique, second, other]);
+
+        Assert.Equal(2, groups.Count);
+        Assert.Equal([first.Id, second.Id], groups[0].Orders.Select(order => order.Id));
+        Assert.Equal([otherCopy.Id, other.Id], groups[1].Orders.Select(order => order.Id));
+    }
+
     [Theory]
     [InlineData("SupplierCode")]
     [InlineData("SupplierName")]

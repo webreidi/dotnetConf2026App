@@ -8,6 +8,7 @@ namespace PurchaseOrders.WinForms;
 public sealed class PurchaseOrderForm : Form
 {
     private readonly PurchaseOrdersApiClient _client;
+    private Guid _submissionId = Guid.NewGuid();
 
     private readonly ComboBox _supplierCombo = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
     private readonly TextBox _notesBox = new() { Dock = DockStyle.Fill, MaxLength = 500 };
@@ -182,11 +183,11 @@ public sealed class PurchaseOrderForm : Form
         using var dialog = new SaveFileDialog
         {
             Title = "Save duplicate purchase orders report",
-            Filter = "Text document (*.txt)|*.txt",
-            DefaultExt = "txt",
+            Filter = "Markdown document (*.md)|*.md",
+            DefaultExt = "md",
             AddExtension = true,
             OverwritePrompt = true,
-            FileName = "duplicate-purchase-orders.txt",
+            FileName = "duplicate-purchase-orders.md",
         };
         if (dialog.ShowDialog(this) != DialogResult.OK)
         {
@@ -235,23 +236,43 @@ public sealed class PurchaseOrderForm : Form
         }
 
         var request = new CreatePurchaseOrderRequest(supplierCode, _notesBox.Text, lines);
+        var shouldRefreshOrders = false;
 
         await RunBusyAsync("Creating draft purchase order...", async () =>
         {
             try
             {
-                var order = await _client.CreateDraftAsync(request);
+                var order = await _client.CreateDraftAsync(request, submissionId: _submissionId);
                 SetStatus($"Draft {order.OrderNumber} created for {order.SupplierName} — total {order.Total:N2}.");
                 ResetForm(keepStatus: true);
-                await LoadRecentOrdersAsync();
+                shouldRefreshOrders = true;
             }
             catch (PurchaseOrderValidationException ex)
             {
                 var details = string.Join(Environment.NewLine, ex.Errors.SelectMany(e => e.Value.Select(v => $"• {e.Key}: {v}")));
                 MessageBox.Show(this, details, "Please fix the purchase order", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 SetStatus("Validation failed.");
+                shouldRefreshOrders = true;
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TimeoutException or InvalidOperationException or System.Text.Json.JsonException)
+            {
+                var message = ex switch
+                {
+                    TimeoutException => "The request timed out. The order may still have been saved. Retry the unchanged draft safely; Clear starts a new submission.",
+                    HttpRequestException { StatusCode: System.Net.HttpStatusCode.Conflict } =>
+                        "This submission identity already belongs to a saved draft with different content. Restore the original content to replay it, or use Clear for a new submission.",
+                    _ => $"The service did not confirm whether the order was saved. Retry the unchanged draft; Clear starts a new submission.\n\n{ex.Message}",
+                };
+                SetStatus("Submission problem: the order may not have been confirmed.");
+                MessageBox.Show(this, message, "Submission problem", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                shouldRefreshOrders = true;
             }
         });
+
+        if (shouldRefreshOrders)
+        {
+            await LoadRecentOrdersAsync();
+        }
     }
 
     private bool TryReadLines(out List<PurchaseOrderLineRequest> lines, out string error)
@@ -336,6 +357,7 @@ public sealed class PurchaseOrderForm : Form
 
     private void ResetForm(bool keepStatus = false)
     {
+        _submissionId = Guid.NewGuid();
         _linesGrid.Rows.Clear();
         _notesBox.Clear();
         RecalculateTotals();
