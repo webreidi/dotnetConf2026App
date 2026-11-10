@@ -41,21 +41,42 @@ The API exports ASP.NET Core, HTTP client, and .NET runtime telemetry through As
 | GET | `/api/suppliers` | Active suppliers |
 | GET | `/api/purchase-orders?supplierCode=&take=` | Recent draft orders |
 | GET | `/api/purchase-orders/{id}` | One order with lines |
-| GET | `/api/purchase-orders/duplicates` | Flat list of all duplicate purchase orders |
-| GET | `/api/purchase-orders/duplicates/groups` | Duplicate purchase orders grouped by matching content |
+| GET | `/api/purchase-orders/duplicates` | All matching orders (unchanged flat response) |
+| GET | `/api/purchase-orders/duplicates/groups` | The same matches as groups, each with an `orders` array of complete records |
 | POST | `/api/purchase-orders` | Create a draft order |
 
 ### Duplicate records report
 
-The desktop **Generate Duplicate Records Report** button saves a Markdown (`.md`)
-file. It contains a Markdown heading and explanation followed by fenced JSON with
-each existing duplicate group, a `duplicateRecordCount`, and every complete
-purchase-order record and line. Each record includes its `duplicateId` and
-`canonicalId`. The canonical record is selected by earliest creation time, with
-UUID as the tie-breaker; this is for review only and does not prove which record
-was original. Matching continues to use the existing duplicate detector. The
-grouped endpoint supplies group membership, while the original flat
-`/api/purchase-orders/duplicates` endpoint remains available unchanged.
+**Generate Duplicate Records Report** saves `duplicate-purchase-orders.json`.
+As requested, this is a Markout-rendered review document with a fenced `json`
+block, not a bare JSON file: extract the fenced block before parsing it as JSON.
+The report includes the duplicate count, matching rules, review notice, complete
+order details (including all lines), and explicit `duplicateId` / `canonicalId`
+pairs for every non-canonical member of each group.
+
+The existing exact-content comparer still matches supplier code/name, status,
+notes, total, and the complete ordered line sequence. It ignores order ID,
+generated order number, and creation time. The grouped API exposes those existing
+boundaries without the client inferring matches; the flat endpoint is preserved.
+All matching groups and members are retained, including creation-time ties.
+The canonical record is the earliest creation instant, with ascending UUID as
+the tie-breaker. **This choice is for review only, not proof of the original.**
+No orders are deleted, merged, updated, or sent to suppliers.
+
+Short synthetic fenced-block example:
+
+```json
+{
+  "duplicateGroups": [{
+    "canonicalId": "00000000-0000-0000-0000-000000000001",
+    "pairs": [{ "duplicateId": "00000000-0000-0000-0000-000000000002", "canonicalId": "00000000-0000-0000-0000-000000000001" }],
+    "orders": [
+      { "id": "00000000-0000-0000-0000-000000000001", "orderNumber": "PO-1", "supplierCode": "ACME", "supplierName": "Acme", "status": "Draft", "notes": null, "total": 2.5, "createdAt": "2026-11-01T10:00:00Z", "lines": [{ "lineNumber": 1, "sku": "A", "description": "Bolt", "quantity": 1, "unitPrice": 2.5, "lineTotal": 2.5 }] },
+      { "id": "00000000-0000-0000-0000-000000000002", "orderNumber": "PO-2", "supplierCode": "ACME", "supplierName": "Acme", "status": "Draft", "notes": null, "total": 2.5, "createdAt": "2026-11-02T10:00:00Z", "lines": [{ "lineNumber": 1, "sku": "A", "description": "Bolt", "quantity": 1, "unitPrice": 2.5, "lineTotal": 2.5 }] }
+    ]
+  }]
+}
+```
 
 ### Submission identity and replay
 
