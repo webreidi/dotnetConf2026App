@@ -1,10 +1,14 @@
 using System.Globalization;
+using System.Text.Json;
+using Markout;
 using PurchaseOrders.Contracts;
 
 namespace PurchaseOrders.Client;
 
 public static class PurchaseOrderReportGenerator
 {
+    private static readonly JsonSerializerOptions ReportJsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+
     public static async Task<string> GenerateDuplicatesAsync(
         PurchaseOrdersApiClient client,
         CancellationToken cancellationToken = default)
@@ -12,21 +16,25 @@ public static class PurchaseOrderReportGenerator
         ArgumentNullException.ThrowIfNull(client);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var orders = await client.ListDuplicatePurchaseOrdersAsync(cancellationToken);
-        using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        writer.WriteLine("Duplicate purchase orders");
-        writer.WriteLine("Matching excludes PO ID, generated order number, and creation timestamp.");
-        writer.WriteLine("Duplicate records: {0}", orders.Count);
-        writer.WriteLine();
-        if (orders.Count == 0)
-        {
-            writer.WriteLine("No duplicate purchase orders found.");
-        }
-        foreach (var order in orders)
+        var groups = await client.ListDuplicatePurchaseOrderGroupsAsync(cancellationToken);
+        var duplicateGroups = groups.Select(group =>
         {
             cancellationToken.ThrowIfCancellationRequested();
-            WriteOrder(writer, order);
-        }
+            var orders = group.OrderBy(order => order.CreatedAt).ThenBy(order => order.Id).ToArray();
+            return new
+            {
+                CanonicalId = orders[0].Id,
+                Pairs = orders.Skip(1).Select(order => new { DuplicateId = order.Id, CanonicalId = orders[0].Id }).ToArray(),
+                Orders = orders,
+            };
+        }).ToArray();
+        var report = new DuplicatePurchaseOrderReport
+        {
+            DuplicateRecords = groups.Sum(group => group.Count),
+            Data = new CodeSection("json", JsonSerializer.Serialize(new { DuplicateGroups = duplicateGroups }, ReportJsonOptions)),
+        };
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        MarkoutSerializer.Serialize(report, writer, DuplicatePurchaseOrderReportContext.Default);
         return writer.ToString();
     }
 
@@ -114,6 +122,27 @@ public static class PurchaseOrderReportGenerator
         writer.WriteLine();
     }
 }
+
+[MarkoutSerializable(TitleProperty = nameof(Title), DescriptionProperty = nameof(Notice), FieldLayout = FieldLayout.Plain)]
+internal sealed class DuplicatePurchaseOrderReport
+{
+    public string Title => "Duplicate purchase orders";
+    public string Notice => "Saved draft purchase orders for review only. Drafts have not been sent to suppliers. " +
+        "Canonical selection uses earliest creation time, breaking ties by UUID (ascending). " +
+        "This choice is for review only, not proof of the original. No database records are modified.";
+    public string Matching => "Matching excludes PO ID, generated order number, and creation timestamp.";
+    [MarkoutPropertyName("Duplicate records")]
+    public int DuplicateRecords { get; init; }
+    [MarkoutIgnore]
+    public bool IsEmpty => DuplicateRecords == 0;
+    [MarkoutShowWhen(nameof(IsEmpty))]
+    public string Result => "No duplicate purchase orders found.";
+    [MarkoutIgnoreInTable, MarkoutSkipDefault]
+    public CodeSection Data { get; init; }
+}
+
+[MarkoutContext(typeof(DuplicatePurchaseOrderReport))]
+internal partial class DuplicatePurchaseOrderReportContext : MarkoutSerializerContext { }
 
 public sealed class PurchaseOrderReport
 {

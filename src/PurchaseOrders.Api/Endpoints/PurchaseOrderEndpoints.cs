@@ -25,6 +25,12 @@ public static class PurchaseOrderEndpoints
             .WithDescription("Matches supplier, status, notes, totals, and every line item, excluding PO identity and creation time.")
             .Produces<IReadOnlyList<PurchaseOrderDto>>();
 
+        orders.MapGet("/duplicates/groups", (PurchaseOrderService service, CancellationToken ct) =>
+                service.ListDuplicateGroupsAsync(ct))
+            .WithName("ListDuplicatePurchaseOrderGroups")
+            .WithSummary("List duplicate groups using the existing content matching rules")
+            .Produces<IReadOnlyList<IReadOnlyList<PurchaseOrderDto>>>();
+
         orders.MapGet("/{id:guid}", async (Guid id, PurchaseOrderService service, CancellationToken ct) =>
                 await service.GetAsync(id, ct) is { } order ? Results.Ok(order) : Results.NotFound())
             .WithName("GetPurchaseOrder")

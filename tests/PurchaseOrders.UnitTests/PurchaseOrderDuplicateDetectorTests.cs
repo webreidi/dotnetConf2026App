@@ -23,6 +23,10 @@ public class PurchaseOrderDuplicateDetectorTests
         var duplicates = PurchaseOrderDuplicateDetector.FindDuplicates([first, second, unique, other, third, otherCopy]);
 
         Assert.Equal([first.Id, second.Id, third.Id, other.Id, otherCopy.Id], duplicates.Select(order => order.Id));
+        var groups = PurchaseOrderDuplicateDetector.FindDuplicateGroups([first, second, unique, other, third, otherCopy, first]);
+        Assert.Equal(2, groups.Count);
+        Assert.Equal([first.Id, second.Id, third.Id], groups[0].Select(order => order.Id));
+        Assert.Equal([other.Id, otherCopy.Id], groups[1].Select(order => order.Id));
     }
 
     [Theory]
@@ -63,6 +67,7 @@ public class PurchaseOrderDuplicateDetectorTests
         changed = changed with { Id = Guid.NewGuid() };
 
         Assert.Empty(PurchaseOrderDuplicateDetector.FindDuplicates([order, changed]));
+        Assert.Empty(PurchaseOrderDuplicateDetector.FindDuplicateGroups([order, changed]));
     }
 
     [Fact]
@@ -73,5 +78,8 @@ public class PurchaseOrderDuplicateDetectorTests
         Assert.Empty(PurchaseOrderDuplicateDetector.FindDuplicates([]));
         Assert.Empty(PurchaseOrderDuplicateDetector.FindDuplicates([order]));
         Assert.Empty(PurchaseOrderDuplicateDetector.FindDuplicates([order, order]));
+        Assert.Empty(PurchaseOrderDuplicateDetector.FindDuplicateGroups([]));
+        Assert.Empty(PurchaseOrderDuplicateDetector.FindDuplicateGroups([order]));
+        Assert.Empty(PurchaseOrderDuplicateDetector.FindDuplicateGroups([order, order]));
     }
 }

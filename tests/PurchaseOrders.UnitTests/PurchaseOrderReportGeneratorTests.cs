@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using PurchaseOrders.Client;
 using PurchaseOrders.Contracts;
 
@@ -13,22 +14,23 @@ public class PurchaseOrderReportGeneratorTests
     {
         var first = SampleOrder();
         var second = first with { Id = Guid.NewGuid(), OrderNumber = "PO-COPY", CreatedAt = first.CreatedAt.AddDays(1) };
-        var handler = new OrderHandler(first, second);
+        var handler = new OrderHandler(second, first);
 
         var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(CreateClient(handler));
 
         Assert.Contains("Duplicate records: 2", report);
-        foreach (var order in new[] { first, second })
-        {
-            Assert.Contains($"Order ID: {order.Id:D}", report);
-            Assert.Contains($"Purchase order: {order.OrderNumber}", report);
-            Assert.Contains($"Created at: {order.CreatedAt:O}", report);
-        }
-        Assert.Equal(2, report.Split("Line number: 2").Length - 1);
-        Assert.Contains(first.SupplierName, report);
-        Assert.Contains(first.Notes!, report);
-        Assert.Contains("NUT-20", report);
-        Assert.Equal(["/api/purchase-orders/duplicates"], handler.Paths);
+        Assert.Contains("for review only, not proof of the original", report);
+        Assert.Contains("have not been sent to suppliers", report);
+        using var json = ParseDuplicateJson(report);
+        var group = Assert.Single(json.RootElement.GetProperty("duplicateGroups").EnumerateArray());
+        Assert.Equal(first.Id, group.GetProperty("canonicalId").GetGuid());
+        var pair = Assert.Single(group.GetProperty("pairs").EnumerateArray());
+        Assert.Equal(first.Id, pair.GetProperty("canonicalId").GetGuid());
+        Assert.Equal(second.Id, pair.GetProperty("duplicateId").GetGuid());
+        Assert.True(JsonElement.DeepEquals(
+            JsonSerializer.SerializeToElement(new[] { first, second }, JsonSerializerOptions.Web),
+            group.GetProperty("orders")));
+        Assert.Equal(["/api/purchase-orders/duplicates/groups"], handler.Paths);
     }
 
     [Fact]
@@ -39,6 +41,72 @@ public class PurchaseOrderReportGeneratorTests
         Assert.Contains("Duplicate records: 0", report);
         Assert.Contains("No duplicate purchase orders found.", report);
         Assert.DoesNotContain("Purchase order:", report);
+        using var json = ParseDuplicateJson(report);
+        Assert.Empty(json.RootElement.GetProperty("duplicateGroups").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task GenerateDuplicatesAsync_preserves_supplied_groups_and_tied_or_non_draft_records()
+    {
+        var first = SampleOrder() with
+        {
+            Id = Guid.Parse("00000001-0000-0000-0000-000000000000"),
+            Status = "Sent",
+            Notes = "Quotes \" and pipes | and newline\n```json",
+        };
+        var second = first with { Id = Guid.Parse("00000002-0000-0000-0000-000000000000") };
+        var third = first with { Id = Guid.Parse("00000003-0000-0000-0000-000000000000") };
+        var other = SampleOrder() with { Notes = null };
+        var otherCopy = other with { Id = Guid.NewGuid(), CreatedAt = other.CreatedAt.AddHours(1) };
+        var handler = new OrderHandler
+        {
+            Groups = [[third, second, first], [otherCopy, other]],
+        };
+        var originalCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+            var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(CreateClient(handler));
+            using var json = ParseDuplicateJson(report);
+            var groups = json.RootElement.GetProperty("duplicateGroups").EnumerateArray().ToArray();
+            Assert.Equal(2, groups.Length);
+            Assert.Equal(first.Id, groups[0].GetProperty("canonicalId").GetGuid());
+            Assert.Equal(new[] { second.Id, third.Id },
+                groups[0].GetProperty("pairs").EnumerateArray().Select(pair => pair.GetProperty("duplicateId").GetGuid()));
+            foreach (var pair in groups[0].GetProperty("pairs").EnumerateArray())
+            {
+                Assert.Equal(first.Id, pair.GetProperty("canonicalId").GetGuid());
+            }
+            Assert.True(JsonElement.DeepEquals(JsonSerializer.SerializeToElement(new[] { first, second, third }, JsonSerializerOptions.Web),
+                groups[0].GetProperty("orders")));
+            Assert.Equal(other.Id, groups[1].GetProperty("canonicalId").GetGuid());
+            Assert.True(JsonElement.DeepEquals(JsonSerializer.SerializeToElement(new[] { other, otherCopy }, JsonSerializerOptions.Web),
+                groups[1].GetProperty("orders")));
+            Assert.Contains("Duplicate records: 5", report);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
+
+    [Fact]
+    public async Task GenerateDuplicatesAsync_surfaces_api_failure_instead_of_returning_a_report()
+    {
+        var handler = new OrderHandler { Groups = null };
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            PurchaseOrderReportGenerator.GenerateDuplicatesAsync(CreateClient(handler)));
+    }
+
+    private static JsonDocument ParseDuplicateJson(string report)
+    {
+        var start = report.IndexOf("```json", StringComparison.Ordinal);
+        Assert.True(start >= 0);
+        start += "```json".Length;
+        var end = report.LastIndexOf("```", StringComparison.Ordinal);
+        Assert.True(end > start);
+        return JsonDocument.Parse(report[start..end]);
     }
 
     [Fact]
@@ -187,12 +255,19 @@ public class PurchaseOrderReportGeneratorTests
     private sealed class OrderHandler(params PurchaseOrderDto[] orders) : HttpMessageHandler
     {
         public List<string> Paths { get; } = [];
+        public IReadOnlyList<IReadOnlyList<PurchaseOrderDto>>? Groups { get; init; } = orders.Length == 0 ? [] : [orders];
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Assert.Equal(HttpMethod.Get, request.Method);
             var path = request.RequestUri!.AbsolutePath;
             Paths.Add(path);
+            if (path == "/api/purchase-orders/duplicates/groups")
+            {
+                return Task.FromResult(Groups is null
+                    ? new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                    : new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(Groups) });
+            }
             if (path == "/api/purchase-orders/duplicates")
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(orders) });

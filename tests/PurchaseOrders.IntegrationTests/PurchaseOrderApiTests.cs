@@ -133,8 +133,25 @@ public class PurchaseOrderApiTests(PurchaseOrdersAppFixture fixture)
         Assert.DoesNotContain(recent, order => savedOrders.Any(saved => saved.Id == order.Id));
 
         var duplicates = await client.ListDuplicatePurchaseOrdersAsync();
+        var groups = await client.ListDuplicatePurchaseOrderGroupsAsync();
         var report = await PurchaseOrderReportGenerator.GenerateDuplicatesAsync(client);
 
+        Assert.Equal(duplicates.Select(order => order.Id), groups.SelectMany(group => group).Select(order => order.Id));
+        var matchingGroup = Assert.Single(groups, group => group.Any(order => order.Notes == notes));
+        Assert.Equal(savedOrders.Select(order => order.Id).Order(), matchingGroup.Select(order => order.Id).Order());
+        var start = report.IndexOf("```json", StringComparison.Ordinal) + "```json".Length;
+        using var json = JsonDocument.Parse(report[start..report.LastIndexOf("```", StringComparison.Ordinal)]);
+        var reportGroup = Assert.Single(json.RootElement.GetProperty("duplicateGroups").EnumerateArray(),
+            group => group.GetProperty("orders").EnumerateArray().Any(order => order.GetProperty("notes").GetString() == notes));
+        var canonical = savedOrders.OrderBy(order => order.CreatedAt).ThenBy(order => order.Id).First();
+        Assert.Equal(canonical.Id, reportGroup.GetProperty("canonicalId").GetGuid());
+        var pairs = reportGroup.GetProperty("pairs").EnumerateArray().ToArray();
+        Assert.Equal(savedOrders.Where(order => order.Id != canonical.Id).Select(order => order.Id).Order(),
+            pairs.Select(pair => pair.GetProperty("duplicateId").GetGuid()).Order());
+        Assert.All(pairs, pair => Assert.Equal(canonical.Id, pair.GetProperty("canonicalId").GetGuid()));
+        Assert.True(JsonElement.DeepEquals(
+            JsonSerializer.SerializeToElement(savedOrders.OrderBy(order => order.CreatedAt).ThenBy(order => order.Id), JsonSerializerOptions.Web),
+            reportGroup.GetProperty("orders")));
         Assert.Equal(3, duplicates.Count(order => order.Notes == notes));
         Assert.DoesNotContain(duplicates, order => order.Id == unique.Id);
         Assert.DoesNotContain(unique.Id.ToString(), report);
